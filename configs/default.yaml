@@ -1,0 +1,35 @@
+runner: src.models.runner.FewShotOrdinalRunner
+model:
+  image_encoder:
+    name: "RN50"
+    lora:
+      enabled: true
+      r: 16
+  text_encoder:
+    name: "RN50" # Not directly loaded, tied to clip_model
+  prompt_learner:
+    name: "rankformer_prompt_learner"
+    num_ranks: 5
+    num_tokens_for_context: 16
+    attn_heads: 4
+  sms:
+    enabled: true
+data:
+  modality: "CFP"
+  k_shot: 4
+  seed: 0
+  batch_query: 32
+  image_size: 224
+  manifest: "data/MMRDR/CFP_manifest.csv"
+  splits_dir: "data/MMRDR/splits"
+  num_workers: 4
+loss:
+  lambda_rank: 1.0
+  mu_pairwise: 0.5
+  tau: 1.0
+train:
+  epochs: 50
+  optimizer: "adam"
+  lr: 1e-4
+  weight_decay: 1e-4
+metrics: ["qwk", "mae", "macro_f1", "auc", "acc", "los"]

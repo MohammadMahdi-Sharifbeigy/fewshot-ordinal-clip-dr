@@ -1,0 +1,8 @@
+defaults:
+  - default
+model:
+  prompt_learner:
+    num_ranks: 3
+data:
+  modality: "OCT"
+  manifest: "data/MMRDR/OCT_manifest.csv"

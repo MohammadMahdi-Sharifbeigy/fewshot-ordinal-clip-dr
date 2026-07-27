@@ -1,0 +1,12 @@
+peft
+transformers>=4.35.0
+ftfy
+regex
+tqdm
+scikit-learn
+pandas
+omegaconf
+wandb
+pyyaml
+pytorch-lightning>=2.0.0
+git+https://github.com/openai/CLIP.git

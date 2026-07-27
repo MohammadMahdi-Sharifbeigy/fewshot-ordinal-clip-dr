@@ -1,0 +1,8 @@
+defaults:
+  - default
+model:
+  prompt_learner:
+    num_ranks: 5
+data:
+  modality: "CFP"
+  manifest: "data/MMRDR/CFP_manifest.csv"

@@ -1,0 +1,34 @@
+# Environments
+env/
+venv/
+.env
+.venv/
+__pycache__/
+*.pyc
+
+# PyTorch Lightning & Weights & Biases
+lightning_logs/
+wandb/
+*.ckpt
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+
+# Data and Results
+data/
+results/
+*.csv
+*.log
+*.zip
+*.tar.gz
+
+# Python Distribution
+src.egg-info/
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/

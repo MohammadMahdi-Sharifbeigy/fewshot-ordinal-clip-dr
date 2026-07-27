@@ -1,0 +1,13 @@
+defaults:
+  - ../default
+model:
+  image_encoder:
+    lora:
+      enabled: false
+  prompt_learner:
+    name: "rankformer_prompt_learner"
+  sms:
+    enabled: false
+loss:
+  lambda_rank: 0.0
+  mu_pairwise: 0.5

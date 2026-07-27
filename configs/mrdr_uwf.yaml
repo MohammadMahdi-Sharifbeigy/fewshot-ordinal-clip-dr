@@ -1,0 +1,8 @@
+defaults:
+  - default
+model:
+  prompt_learner:
+    num_ranks: 5
+data:
+  modality: "UWF"
+  manifest: "data/MMRDR/UWF_manifest.csv"
