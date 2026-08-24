@@ -14,7 +14,7 @@ def test_splits_properties():
     df = pd.read_csv(manifest_path)
     
     k = 4
-    seed = 0
+    seed = 1
     support_file = os.path.join(splits_dir, f"cfp_{k}shot_s{seed}_support.txt")
     query_file = os.path.join(splits_dir, f"cfp_{k}shot_s{seed}_query.txt")
     

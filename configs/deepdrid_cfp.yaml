@@ -1,0 +1,9 @@
+defaults:
+  - default
+model:
+  prompt_learner:
+    num_ranks: 5
+data:
+  modality: "CFP"
+  manifest: "data/DeepDRiD/CFP_manifest.csv"
+  splits_dir: "data/DeepDRiD/splits"

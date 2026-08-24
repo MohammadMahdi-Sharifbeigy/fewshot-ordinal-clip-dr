@@ -28,10 +28,10 @@ class OrdinalCLIPHead(nn.Module):
         self.base_embeddings = nn.Parameter(base_vectors)
         
         import clip
-        if classnames is None:
-            classnames = [f"grade {i}" for i in range(num_ranks)]
-            
-        prompts = [f"a photo of a {name}" for name in classnames]
+        # Create a dummy prompt of exactly length: num_context_tokens + 1 (for rank)
+        dummy_prompt = " ".join(["X"] * (num_context_tokens + 1))
+        prompts = [dummy_prompt for _ in range(num_ranks)]
+        
         tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts])
         self.register_buffer("tokenized_prompts", tokenized_prompts)
         

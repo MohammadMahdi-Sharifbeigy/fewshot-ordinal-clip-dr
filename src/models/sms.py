@@ -1,81 +1,105 @@
 import torch
 import torch.nn as nn
-import numpy as np
+
 
 class SMS(nn.Module):
-    def __init__(self, num_ranks=5, kernel_size=3, sigma=1.0):
+    """Similarity Matrix Smoothing (SMS) calibration module.
+
+    After each training epoch, computes per-rank mean similarity statistics
+    and smooths them with a Gaussian kernel over the rank axis. At inference,
+    the raw similarity columns are shifted toward the smoothed mean to reduce
+    overconfidence artefacts.
+
+    The calibration formula (column-wise mean shift):
+        S̃[:, j] = S[:, j] - μ_j + μ̃_j
+    where μ_j is the raw per-rank mean and μ̃_j = Σ_{j'} K(j,j') μ_{j'} is the
+    kernel-smoothed mean. This is numerically stable and cannot produce NaN.
+    """
+
+    def __init__(self, num_ranks: int = 5, kernel_size: int = 3, sigma: float = 1.0):
         super().__init__()
         self.num_ranks = num_ranks
-        
-        # Build symmetric gaussian-like kernel
-        kernel = torch.zeros((num_ranks, num_ranks))
-        for i in range(num_ranks):
-            for j in range(num_ranks):
-                if abs(i-j) <= kernel_size // 2:
-                    kernel[i, j] = np.exp(-abs(i-j)**2 / (2 * sigma**2))
-        # Normalize rows
+
+        # Build symmetric Gaussian kernel over rank axis — pure torch, no numpy
+        idx = torch.arange(num_ranks, dtype=torch.float32)
+        dist = (idx.unsqueeze(0) - idx.unsqueeze(1)).abs()   # [K, K]
+        # Zero out entries beyond half the kernel window
+        window = kernel_size // 2
+        kernel = torch.where(
+            dist <= window,
+            torch.exp(-dist ** 2 / (2.0 * sigma ** 2)),
+            torch.zeros_like(dist),
+        )
+        # Row-normalise so each row sums to 1
         kernel = kernel / kernel.sum(dim=1, keepdim=True)
-        self.register_buffer('kernel', kernel)
-        
-        self.register_buffer('mu', torch.zeros(num_ranks))
-        self.register_buffer('sigma_sq', torch.ones(num_ranks))
-        
+        self.register_buffer("kernel", kernel)  # [K, K]
+
+        # Running per-rank mean similarities (updated each epoch)
+        self.register_buffer("mu_raw", torch.zeros(num_ranks))    # [K]
+        self.register_buffer("mu_smooth", torch.zeros(num_ranks)) # [K]
+
         self.reset_stats()
-        
-    def reset_stats(self):
-        self.mu_acc = {j: [] for j in range(self.num_ranks)}
-        
-    def update_stats(self, S, targets):
-        """ Accumulate stats during training """
-        for i in range(S.size(0)):
-            j = targets[i].item()
-            # We want to smooth the similarity of sample i w.r.t true class j
-            # But SMS smooths the column distributions.
-            # In CLIP-DR, mu_j and Sigma_j are statistics of row vectors where true rank is j.
-            self.mu_acc[j].append(S[i].detach())
-            
-    def compute_smoothed_stats(self):
-        """ Called at the end of epoch to update mu and sigma for the next epoch """
+
+    # ------------------------------------------------------------------
+    # Stats accumulation (called during training_step)
+    # ------------------------------------------------------------------
+
+    def reset_stats(self) -> None:
+        """Reset accumulators at the start of each training epoch."""
+        # Store (sum, count) per rank for streaming mean computation
+        self._sum = [torch.zeros(self.num_ranks) for _ in range(self.num_ranks)]
+        self._cnt = [0] * self.num_ranks
+
+    def update_stats(self, S: torch.Tensor, targets: torch.Tensor) -> None:
+        """Accumulate per-rank column-mean statistics.
+
+        Args:
+            S:       [B, K] raw similarity matrix
+            targets: [B]    ground-truth rank labels
+        """
+        S_detached = S.detach().cpu()
+        targets_cpu = targets.cpu()
+        for rank in range(self.num_ranks):
+            mask = targets_cpu == rank        # [B] bool
+            if mask.any():
+                self._sum[rank] = self._sum[rank] + S_detached[mask].sum(dim=0)
+                self._cnt[rank] += mask.sum().item()
+
+    # ------------------------------------------------------------------
+    # Epoch-end smoothing update
+    # ------------------------------------------------------------------
+
+    def compute_smoothed_stats(self) -> None:
+        """Compute kernel-smoothed per-rank means at epoch end."""
         device = self.kernel.device
-        mu = torch.zeros(self.num_ranks, self.num_ranks, device=device)
-        sigma_sq = torch.ones(self.num_ranks, self.num_ranks, device=device)
-        
-        for j in range(self.num_ranks):
-            if len(self.mu_acc[j]) > 0:
-                rows = torch.stack(self.mu_acc[j]) # [N, num_ranks]
-                mu[j] = rows.mean(dim=0)
-                if len(rows) > 1:
-                    sigma_sq[j] = rows.var(dim=0)
-                else:
-                    sigma_sq[j] = torch.zeros(self.num_ranks, device=device)
-        
-        # Smooth with kernel
-        # \tilde{mu}_j = \sum_{j'} K(j, j') mu_{j'}
-        self.mu = self.kernel @ mu # [num_ranks, num_ranks]
-        self.sigma_sq = self.kernel @ sigma_sq # [num_ranks, num_ranks]
-        
-    def forward(self, S):
-        """ Apply calibration """
-        # S: [B, num_ranks]
-        # We don't know the true class at inference time for SMS. 
-        # Wait, the formula says:
-        # \tilde{s}_{.,j} = \tilde{\Sigma}_j^{1/2} * \tilde{\mu}_j^{1/2} * (s_{.,j} - \mu_j) + \tilde{\mu}_j
-        # where \mu_j is the scalar mean of column j? 
-        # No, the paper says "s_{.,j} as the row vector that the true text embedding is t_j".
-        # For calibration, it's applied column-wise. Let's do a simplified column-wise smoothing:
-        # we compute mean and var of each column over the epoch.
-        # Here we just return S if stats are not ready
-        if torch.all(self.mu == 0):
+
+        mu = torch.zeros(self.num_ranks, device=device)
+        for rank in range(self.num_ranks):
+            if self._cnt[rank] > 0:
+                mu[rank] = (
+                    self._sum[rank].to(device) / self._cnt[rank]
+                ).mean()  # scalar: mean over K columns for this rank's samples
+
+        self.mu_raw = mu                          # [K]
+        self.mu_smooth = self.kernel @ mu         # [K]  — kernel-smoothed means
+
+    # ------------------------------------------------------------------
+    # Inference calibration
+    # ------------------------------------------------------------------
+
+    def forward(self, S: torch.Tensor) -> torch.Tensor:
+        """Apply column-wise mean-shift calibration.
+
+        Args:
+            S: [B, K] similarity matrix
+        Returns:
+            S_tilde: [B, K] calibrated similarities
+        """
+        # Skip calibration if we haven't gathered any stats yet
+        if self.mu_raw.abs().sum() < 1e-9:
             return S
-            
-        S_tilde = S.clone()
-        # Simplified: apply diagonal of smoothed stats
-        for j in range(self.num_ranks):
-            # mu_j of column j
-            mu_j = self.mu[j, j]
-            sig_j = torch.sqrt(self.sigma_sq[j, j] + 1e-8)
-            # Center and scale
-            # To avoid exploding values, just slightly pull toward smoothed mean
-            S_tilde[:, j] = sig_j * torch.sqrt(torch.abs(mu_j) + 1e-8) * (S[:, j] - mu_j) + mu_j
-            
-        return S_tilde
+
+        # Column-wise shift: pull each column toward its smoothed mean
+        # S̃[:, j] = S[:, j] - μ_raw[j] + μ_smooth[j]
+        shift = self.mu_smooth - self.mu_raw  # [K]
+        return S + shift.unsqueeze(0)         # [B, K]

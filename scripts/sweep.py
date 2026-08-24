@@ -1,23 +1,50 @@
-import os
 import subprocess
 import argparse
+import sys
+from pathlib import Path
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, required=True, help="Path to config file")
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Sweep over k-shot values and seeds using train.py"
+    )
+    parser.add_argument("--config",  type=str, required=True, help="Path to config YAML")
+    parser.add_argument(
+        "--kshots", type=str, default="1,2,4,8,16,32",
+        help="Comma-separated list of k values (default: 1,2,4,8,16,32)",
+    )
+    parser.add_argument(
+        "--seeds",  type=str, default="1,2,3,4,5",
+        help="Comma-separated list of seeds (default: 1,2,3,4,5)",
+    )
     return parser.parse_args()
 
-def main():
+
+def main() -> None:
     args = parse_args()
-    
-    k_shots = [1, 2, 4, 8, 16]
-    seeds = [0, 1, 2, 3, 4]
-    
+
+    k_shots = [int(x) for x in args.kshots.split(",")]
+    seeds   = [int(x) for x in args.seeds.split(",")]
+
+    total = len(k_shots) * len(seeds)
+    done  = 0
+
     for k in k_shots:
         for s in seeds:
-            print(f"Running config={args.config} k={k} seed={s}")
-            cmd = f"python scripts/train.py --config {args.config} data.k_shot={k} data.seed={s}"
-            subprocess.run(cmd, shell=True, check=True)
+            done += 1
+            print(f"\n[{done}/{total}] config={args.config}  k={k}  seed={s}")
+            cmd = [
+                sys.executable, "scripts/train.py",
+                "--config", args.config,
+                f"data.k_shot={k}",
+                f"data.seed={s}",
+            ]
+            result = subprocess.run(cmd, check=False)
+            if result.returncode != 0:
+                print(f"[!] Run failed (k={k}, seed={s}) — continuing sweep.")
+
+    print("\n[✓] Sweep complete.")
+
 
 if __name__ == "__main__":
     main()

@@ -6,9 +6,9 @@ model:
       enabled: true
       r: 16
   text_encoder:
-    name: "RN50" # Not directly loaded, tied to clip_model
+    name: "RN50"  # tied to clip_model, not loaded separately
   prompt_learner:
-    name: "rankformer_prompt_learner"
+    name: "ordinalclip_rank_prompt_learner"  #rankformer_prompt_learner
     num_ranks: 5
     num_tokens_for_context: 16
     attn_heads: 4
@@ -17,19 +17,29 @@ model:
 data:
   modality: "CFP"
   k_shot: 4
-  seed: 0
+  seed: 1
+  # batch_query is used for val/test. For training (support set),
+  # the effective batch size is min(k_shot * num_ranks, batch_query).
   batch_query: 32
   image_size: 224
   manifest: "data/MMRDR/CFP_manifest.csv"
   splits_dir: "data/MMRDR/splits"
-  num_workers: 4
+  num_workers: 0
 loss:
   lambda_rank: 1.0
-  mu_pairwise: 0.5
+  mu_pairwise: 0.0
   tau: 1.0
 train:
-  epochs: 50
-  optimizer: "adam"
+  # 100 epochs is appropriate for few-shot: with ~5–160 support images,
+  # each epoch is fast (~1–5 gradient steps), so 100 epochs ≈ 100–500 total steps.
+  epochs: 100
+  optimizer: "adamw"
   lr: 1e-4
   weight_decay: 1e-4
+  # Cosine annealing with short linear warmup for stable few-shot training
+  scheduler: "cosine"
+  warmup_epochs: 5
+  early_stopping_patience: 20
+  early_stopping_monitor: "val_qwk"
+  early_stopping_mode: "max"
 metrics: ["qwk", "mae", "macro_f1", "auc", "acc", "los"]

@@ -2,87 +2,103 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class RankingAwareLoss(nn.Module):
-    """CLIP-DR Ranking Aware Loss"""
-    def __init__(self, num_ranks=5, tau=1.0):
+    """CLIP-DR Ranking Aware Loss — fully vectorized.
+
+    For each sample with ground-truth rank j, enforces that:
+      - sim[j] > sim[j+1] > ... (rightward monotonicity)
+      - sim[j] > sim[j-1] > ... (leftward monotonicity)
+
+    Each pairwise constraint uses -log σ(s_k − s_{k±1}).
+    """
+
+    def __init__(self, num_ranks: int = 5, tau: float = 1.0):
         super().__init__()
         self.num_ranks = num_ranks
         self.tau = tau
-        
-    def forward(self, sim, targets):
+
+    def forward(self, sim: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
-        sim: [B, num_ranks] similarity matrix
-        targets: [B] ground truth ranks
+        Args:
+            sim:     [B, K]  — cosine similarity logits (already scaled)
+            targets: [B]     — ground-truth rank indices in [0, K-1]
+        Returns:
+            Scalar loss.
         """
-        B = sim.size(0)
-        total_loss = 0.0
-        
-        for i in range(B):
-            j = targets[i].item()
-            
-            # rightward: sum_{j'=j..K-2} -log softmax(sim[j'], sim[j'+1])
-            right_loss = 0.0
-            for jp in range(j, self.num_ranks - 1):
-                s1 = sim[i, jp] / self.tau
-                s2 = sim[i, jp + 1] / self.tau
-                right_loss += -torch.log(torch.exp(s1) / (torch.exp(s1) + torch.exp(s2) + 1e-8))
-                
-            # leftward: sum_{j'=2..j} -log softmax(sim[j'], sim[j'-1])
-            left_loss = 0.0
-            for jp in range(j, 0, -1):
-                s1 = sim[i, jp] / self.tau
-                s2 = sim[i, jp - 1] / self.tau
-                left_loss += -torch.log(torch.exp(s1) / (torch.exp(s1) + torch.exp(s2) + 1e-8))
-                
-            total_loss += (right_loss + left_loss)
-            
-        return total_loss / max(B, 1)
+        B, K = sim.shape
+        s = sim / self.tau  # [B, K]
+
+        # --- Rightward loss: for each j' in [target, K-2], penalise s[j'] < s[j'+1] ---
+        # diff_right[b, r] = s[b, r] - s[b, r+1]  for r in [0, K-2]
+        diff_right = s[:, :-1] - s[:, 1:]  # [B, K-1]
+
+        # Mask: include pair (b, r) only when r >= target[b]
+        rank_idx = torch.arange(K - 1, device=sim.device).unsqueeze(0)  # [1, K-1]
+        mask_right = rank_idx >= targets.unsqueeze(1)  # [B, K-1]
+
+        right_loss = (-F.logsigmoid(diff_right) * mask_right).sum(dim=1)  # [B]
+
+        # --- Leftward loss: for each j' in [1, target], penalise s[j'] < s[j'-1] ---
+        # diff_left[b, r] = s[b, r] - s[b, r-1]  for r in [1, K-1]
+        diff_left = s[:, 1:] - s[:, :-1]  # [B, K-1]  (s[r] - s[r-1])
+
+        # Mask: include pair (b, r) only when r <= target[b]
+        # pair index r here corresponds to the pair (r, r-1), r in [1, K-1]
+        rank_idx_left = torch.arange(1, K, device=sim.device).unsqueeze(0)  # [1, K-1]
+        mask_left = rank_idx_left <= targets.unsqueeze(1)  # [B, K-1]
+
+        left_loss = (-F.logsigmoid(diff_left) * mask_left).sum(dim=1)  # [B]
+
+        return (right_loss + left_loss).mean()
+
 
 class CrossModalPairwiseLoss(nn.Module):
-    """L2RCLIP Cross-Modal Pairwise Loss"""
-    def __init__(self, num_ranks=5, tau=1.0):
+    """L2RCLIP Cross-Modal Pairwise CE Loss — fully vectorized.
+
+    Penalises images being closer to wrong-rank prototypes, weighted by
+    the ordinal distance |y_i − j|.
+    """
+
+    def __init__(self, num_ranks: int = 5, tau: float = 1.0):
         super().__init__()
         self.num_ranks = num_ranks
         self.tau = tau
-        
-    def forward(self, image_feats, rank_prototypes, targets):
+
+    def forward(
+        self,
+        image_feats: torch.Tensor,
+        rank_prototypes: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> torch.Tensor:
         """
-        image_feats: [B, d]
-        rank_prototypes: [num_ranks, d]
-        targets: [B]
+        Args:
+            image_feats:     [B, d]   — L2-normalised image embeddings
+            rank_prototypes: [K, d]   — L2-normalised text embeddings
+            targets:         [B]      — ground-truth rank indices in [0, K-1]
+        Returns:
+            Scalar loss.
         """
         B = image_feats.size(0)
-        sim = image_feats @ rank_prototypes.T  # [B, num_ranks]
-        probs = F.softmax(sim / self.tau, dim=1) # [B, num_ranks]
-        
-        loss = 0.0
-        for i in range(B):
-            img_feat = image_feats[i]
-            y_i = targets[i].item()
-            
-            for j in range(self.num_ranks):
-                if j == y_i:
-                    continue
-                    
-                # Weight by label space distance
-                w_ij = abs(y_i - j)
-                
-                # Cross-modal features: hard mean = rank_prototypes[j], soft mean = weighted avg of images
-                hard_mean = rank_prototypes[j]
-                
-                # Diversity estimation using meanNN (simplified for single batch)
-                # D_pce ≈ - ||img_feat - hard_mean||^2
-                # Note: The exact formulation in L2RCLIP uses entire dataset statistics.
-                # For batch processing, we approximate CPCE as bringing image closer to correct rank
-                # and pushing away from incorrect ranks proportional to rank distance.
-                
-                # Simple approximation: log softmax over distance
-                # The paper uses: L_CPCE(x_i, t_j, y_i)
-                sim_i_yi = sim[i, y_i] / self.tau
-                sim_i_j = sim[i, j] / self.tau
-                
-                # Pairwise CE: -log( exp(s_yi) / (exp(s_yi) + exp(s_j)) )
-                pce = -torch.log(torch.exp(sim_i_yi) / (torch.exp(sim_i_yi) + torch.exp(sim_i_j) + 1e-8))
-                loss += w_ij * pce
-                
-        return loss / max(B, 1)
+        K = self.num_ranks
+
+        sim = image_feats @ rank_prototypes.T / self.tau  # [B, K]
+
+        # Ground-truth similarities: sim_yi[b] = sim[b, targets[b]]
+        sim_yi = sim[torch.arange(B, device=sim.device), targets]  # [B]
+
+        # Pairwise CE: -log σ(sim_yi - sim_j) for each j != y_i
+        # Broadcast: [B, 1] - [B, K] = [B, K]
+        pce = -F.logsigmoid(sim_yi.unsqueeze(1) - sim)  # [B, K]
+
+        # Ordinal distance weights: |y_i - j|
+        # [1, K] and [B, 1] broadcast to [B, K]
+        ranks = torch.arange(K, device=sim.device).unsqueeze(0)  # [1, K]
+        weights = (targets.unsqueeze(1) - ranks).abs().float()    # [B, K]
+
+        # Zero out the diagonal (j == y_i term — no self-penalty)
+        diag_mask = torch.ones(B, K, device=sim.device)
+        diag_mask[torch.arange(B, device=sim.device), targets] = 0.0
+
+        loss = (weights * pce * diag_mask).sum(dim=1).mean()
+        return loss
