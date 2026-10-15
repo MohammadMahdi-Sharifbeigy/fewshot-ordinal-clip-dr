@@ -6,12 +6,12 @@ standardised CFP_manifest.csv format expected by FewShotDataModule / MMRDRDatase
 
 Expected raw layout
 ───────────────────
-APTOS (G:/Datasets/DR/APTOS):
+APTOS (F:/Datasets/DR/APTOS):
   train_images/train_images/<id_code>.png
   train_1.csv   – columns: id_code, diagnosis       (train split)
   valid.csv     – columns: id_code, diagnosis        (val/test split)
 
-DeepDRiD (G:/Datasets/DR/DeepDRiD/DeepDRiD-master):
+DeepDRiD (F:/Datasets/DR/DeepDRiD/DeepDRiD-master):
   regular_fundus_images/Images/<patient_id>/<image_id>.jpg   (both splits)
   regular-fundus-training.csv   – columns: image_id, patient_id, patient_DR_Level, ...
   regular-fundus-validation.csv – columns: image_id, patient_id, patient_DR_Level, ...
@@ -32,8 +32,8 @@ Both files have columns:  path, modality, grade, lesion, lr, split
 Run from the Workspace directory:
   python scripts/prepare_external_datasets.py
 or with custom paths:
-  python scripts/prepare_external_datasets.py --aptos G:/Datasets/DR/APTOS
-                                               --deepdrid G:/Datasets/DR/DeepDRiD/DeepDRiD-master
+  python scripts/prepare_external_datasets.py --aptos F:/Datasets/DR/APTOS
+                                               --deepdrid F:/Datasets/DR/DeepDRiD/DeepDRiD-master
 """
 
 import argparse
@@ -44,8 +44,8 @@ import pandas as pd
 
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
-DEFAULT_APTOS    = Path("G:/Datasets/DR/APTOS")
-DEFAULT_DEEPDRID = Path("G:/Datasets/DR/DeepDr/DeepDRiD-master")
+DEFAULT_APTOS    = Path("F:/Datasets/DR/APTOS")
+DEFAULT_DEEPDRID = Path("F:/Datasets/DR/DeepDr/DeepDRiD-master")
 
 
 def build_aptos_manifest(aptos_root: Path, out_dir: Path) -> Path:

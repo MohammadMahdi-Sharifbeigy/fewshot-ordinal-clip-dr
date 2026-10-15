@@ -8,7 +8,7 @@ out_dir.mkdir(parents=True, exist_ok=True)
 
 df = pd.read_csv(manifest_path)
 
-images_root = r"G:\Datasets\DR\DeepDr\DeepDRiD-master\regular_fundus_images"
+images_root = r"F:\Datasets\DR\DeepDr\DeepDRiD-master\regular_fundus_images"
 
 def to_relative(p):
     # Ensure standard slashes

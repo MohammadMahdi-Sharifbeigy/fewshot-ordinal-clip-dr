@@ -123,7 +123,6 @@ class FewShotOrdinalRunner(pl.LightningModule):
 
         if self.sms is not None:
             self.sms.update_stats(sim, target)
-            sim = self.sms(sim)
 
         loss_main = self.criterion_main(sim, target)
         loss_rank = (

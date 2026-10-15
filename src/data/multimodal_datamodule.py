@@ -76,7 +76,7 @@ class MultiModalFewShotDataModule(pl.LightningDataModule):
         self.splits_dir = cfg.data.splits_dir
 
         # Build support/query split file paths (anchored on CFP)
-        if self.k_shot == 0:
+        if self.k_shot <= 0:
             self.support_file: Optional[str] = None
             self.query_file: Optional[str] = None
         else:
@@ -108,6 +108,17 @@ class MultiModalFewShotDataModule(pl.LightningDataModule):
                 split_file=self.query_file,
                 transforms=test_transforms,
             )
+        elif self.k_shot == -1:
+            self.support_dataset = MultiModalMMRDRDataset(
+                self.manifests,
+                split_type="train",
+                transforms=train_transforms,
+            )
+            self.query_dataset = MultiModalMMRDRDataset(
+                self.manifests,
+                split_type="test",
+                transforms=test_transforms,
+            )
         else:
             self.support_dataset = None
             self.query_dataset = None
@@ -132,7 +143,10 @@ class MultiModalFewShotDataModule(pl.LightningDataModule):
     def train_dataloader(self) -> Optional[DataLoader]:
         if self.support_dataset is None or len(self.support_dataset) == 0:
             return None
-        batch_size = min(len(self.support_dataset), self.batch_query)
+        if self.k_shot == -1:
+            batch_size = self.batch_query
+        else:
+            batch_size = min(len(self.support_dataset), self.batch_query)
         return self._make_loader(self.support_dataset, shuffle=True, batch_size=batch_size)
 
     def val_dataloader(self) -> Optional[DataLoader]:

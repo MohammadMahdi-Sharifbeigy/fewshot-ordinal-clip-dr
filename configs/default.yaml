@@ -8,7 +8,7 @@ model:
   text_encoder:
     name: "RN50"  # tied to clip_model, not loaded separately
   prompt_learner:
-    name: "ordinalclip_rank_prompt_learner"  #rankformer_prompt_learner
+    name: "rankformer_prompt_learner"  #rankformer_prompt_learner
     num_ranks: 5
     num_tokens_for_context: 16
     attn_heads: 4
@@ -27,7 +27,7 @@ data:
   num_workers: 0
 loss:
   lambda_rank: 1.0
-  mu_pairwise: 0.0
+  mu_pairwise: 1.0
   tau: 1.0
 train:
   # 100 epochs is appropriate for few-shot: with ~5–160 support images,

@@ -32,3 +32,14 @@ dist/
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
+
+# Third-party code (cited in README, not redistributed)
+CLIP-DR/
+repos/
+
+# Unrelated side project
+PythonCode/
+
+# Misc
+.pytest_cache/
+notebooks/*copy*.ipynb
