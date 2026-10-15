@@ -112,8 +112,8 @@ The support set is trained with
 | 32-shot | 0.759 ± 0.025 | 0.553 ± 0.076 | 0.510 ± 0.071 | 0.823 ± 0.018 | 0.570 ± 0.061 |
 | **Full** | **0.870 ± 0.004** | **0.363 ± 0.015** | **0.623 ± 0.003** | **0.888 ± 0.000** | **0.687 ± 0.014** |
 
-<p align="center"><img src="assets/kshot_curves.png" alt="QWK, MAE, Macro-F1 and AUC versus number of shots on DeepDRiD-CFP; the dashed line marks the full-data result" width="100%"/></p>
-<p align="center"><sub>Solid line: few-shot regimes (mean ± std over 3 seeds). Dashed line and band: the same model trained on the full training set.</sub></p>
+<p align="center"><img src="assets/ablation_full_vs_baseline.png" alt="QWK, MAE, Macro-F1 and AUC versus number of shots on DeepDRiD-CFP for Ours (Full) and the OrdinalCLIP-style baseline; dashed lines mark the full-data results" width="100%"/></p>
+<p align="center"><sub>Ours (Full, blue) vs. the OrdinalCLIP-style baseline (pink). Solid lines: few-shot regimes (mean ± std over 3 seeds). Dashed lines and bands: each model trained on the full training set.</sub></p>
 
 ### Confusion matrices: OrdinalCLIP baseline vs. ours
 
