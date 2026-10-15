@@ -83,7 +83,23 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
 | 32-shot | 0.759 ± 0.025 | 0.553 ± 0.076 | 0.510 ± 0.071 | 0.823 ± 0.018 | 0.570 ± 0.061 |
 | **Full** | **0.870 ± 0.004** | **0.363 ± 0.015** | **0.623 ± 0.003** | **0.888 ± 0.000** | **0.687 ± 0.014** |
 
-<p align="center"><img src="assets/kshot_curves.png" alt="QWK, MAE, Macro-F1 and AUC versus number of shots on DeepDRiD-CFP" width="100%"/></p>
+<p align="center"><img src="assets/kshot_curves.png" alt="QWK, MAE, Macro-F1 and AUC versus number of shots on DeepDRiD-CFP; the dashed line marks the full-data result" width="100%"/></p>
+<p align="center"><sub>Solid line: few-shot regimes (mean ± std over 3 seeds). Dashed line and band: the same model trained on the full training set.</sub></p>
+
+### Confusion matrices: OrdinalCLIP baseline vs. ours
+
+<table>
+  <tr>
+    <th align="center">OrdinalCLIP baseline</th>
+    <th align="center">Ours (Full), 32-shot, seed 1</th>
+  </tr>
+  <tr>
+    <td align="center" width="38%"><img src="assets/DeepDrID-simulation.png" alt="Row-normalised confusion matrix of the OrdinalCLIP baseline on DeepDRiD" width="100%"/></td>
+    <td align="center" width="62%"><img src="assets/confusion_ours_k32_s1.png" alt="Confusion matrix (counts and row-normalised) of our full model at 32 shots, seed 1, on DeepDRiD-CFP" width="100%"/></td>
+  </tr>
+</table>
+
+Our model trains on only 32 images per grade, yet most of its errors fall on the grades next to the true one, close to the diagonal. Grade 4 is still often predicted as grade 3, the same weakness the OrdinalCLIP baseline shows.
 
 ### Ablation study
 
