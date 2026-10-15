@@ -11,30 +11,30 @@
 [![PEFT](https://img.shields.io/badge/PEFT-LoRA-FFB000)](https://github.com/huggingface/peft)
 [![Status](https://img.shields.io/badge/status-research%20preview-2ea44f)](#)
 
-[Overview](#-overview) · [Framework](#-framework) · [Results](#-results) · [Getting started](#-getting-started) · [Reproduce](#-reproducing-the-paper-experiments) · [Acknowledgements](#-acknowledgements--references)
+[Overview](#overview) · [Framework](#framework) · [Results](#results) · [Getting started](#getting-started) · [Reproduce](#reproducing-the-paper-experiments) · [Acknowledgements](#acknowledgements--references)
 
 </div>
 
 ---
 
-## 🔭 Overview
+## Overview
 
 Diabetic retinopathy (DR) is graded on an **ordinal** five-level scale (No DR → Mild → Moderate → Severe → Proliferative). Mistaking grade 1 for grade 2 is far less harmful than mistaking grade 0 for grade 4, yet most classifiers treat the grades as unrelated categories. Labelled fundus images are also costly to collect, so a practical grading model has to learn from **very few examples per grade**.
 
 This repository adapts a frozen **CLIP** model to few-shot ordinal DR grading with four lightweight components:
 
-| | Component | What it does | Trainable? |
-|---|---|---|---|
-| 🧩 | **LoRA image adapters** | Low-rank updates (r = 16) on the conv layers of the frozen CLIP ResNet-50 | ✅ |
-| 🔗 | **RankFormer prompt learner** | 16 shared context tokens + 5 rank tokens; multi-head self-attention lets rank tokens exchange ordinal context before the frozen text encoder | ✅ |
-| 📐 | **Ordinal objective** | Cross-entropy + ranking-aware loss (monotonic similarity around the true grade) + cross-modal pairwise loss weighted by grade distance | — |
-| 🌊 | **Similarity Matrix Smoothing (SMS)** | Gaussian-kernel smoothing of per-grade similarity statistics, then a column-wise mean shift at inference | statistics only |
+| Component | What it does | Trainable |
+|---|---|:-:|
+| **LoRA image adapters** | Low-rank updates (r = 16) on the conv layers of the frozen CLIP ResNet-50 | yes |
+| **RankFormer prompt learner** | 16 shared context tokens + 5 rank tokens; multi-head self-attention lets rank tokens exchange ordinal context before the frozen text encoder | yes |
+| **Ordinal objective** | Cross-entropy + ranking-aware loss (monotonic similarity around the true grade) + cross-modal pairwise loss weighted by grade distance | – |
+| **Similarity Matrix Smoothing (SMS)** | Gaussian-kernel smoothing of per-grade similarity statistics, then a column-wise mean shift at inference | statistics only |
 
 The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot and full training), **3 seeds** and **9 ablation variants** on DeepDRiD (CFP).
 
 ---
 
-## 🧠 Framework
+## Framework
 
 <p align="center">
   <img src="assets/framework.svg" alt="Framework overview: (a) data and few-shot protocol, (b) ordinal-aware CLIP model with LoRA image encoder and RankFormer prompt learner, (c) training objective, SMS calibration and evaluation, (d) experimental protocol" width="100%"/>
@@ -49,16 +49,47 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
 - `k = 0` is zero-shot (no parameter updates); `k = −1` uses the full training set.
 
 **(b) Ordinal-aware CLIP model** (`src/models/runner.py`)
-- **Image branch.** Each fundus image goes through the CLIP ResNet-50 visual encoder. The backbone stays frozen and only the LoRA adapters on `conv1/2/3` are trained (`src/models/lora_adapter.py`). This branch outputs an L2-normalised feature `f ∈ ℝ¹⁰²⁴`.
-- **Text branch.** `RankFormerPromptLearner` (`src/models/prompt_learner/rankformer.py`) builds one prompt per grade: `[SOS] v₁ … v₁₆ r̂ₖ [EOS]`. The rank tokens are refined by self-attention, `r̂ = r + MHSA(r)`, so neighbouring grades share context. The frozen CLIP text encoder turns each prompt into a **rank prototype** `tₖ`.
-- **Similarity.** `S = s · f tᵀ ∈ ℝ^{B×5}`, where `s` is CLIP's learned logit scale (clamped at 100).
+- **Image branch.** Each fundus image goes through the CLIP ResNet-50 visual encoder. The backbone stays frozen and only the LoRA adapters on `conv1/2/3` are trained (`src/models/lora_adapter.py`). This branch outputs an L2-normalised feature $`f \in \mathbb{R}^{1024}`$.
+- **Text branch.** `RankFormerPromptLearner` (`src/models/prompt_learner/rankformer.py`) builds one prompt per grade $`k \in \{0, \dots, 4\}`$ from 16 shared context tokens $`v_1, \dots, v_{16}`$ and a rank token. The rank tokens first attend to each other, so neighbouring grades share context:
 
-**(c) Objective, calibration & output**
-- `ℒ = ℒ_CE + λ·ℒ_rank + μ·ℒ_pair` (`src/models/losses.py`)
-  - `ℒ_rank`, the **ranking-aware loss** (after CLIP-DR): for a sample of grade *y*, similarities must decrease monotonically to the left and to the right of *y*.
-  - `ℒ_pair`, the **cross-modal pairwise loss** (after L2RCLIP): penalises an image for being closer to a wrong-grade prototype, weighted by `|y − j|`.
-- **SMS** (`src/models/sms.py`) accumulates per-grade mean similarities `μ` during training and smooths them across grades with a Gaussian kernel, `μ̃ = Kμ`. At inference it calibrates `S̃ = S − μ + μ̃`.
-- Prediction: `ŷ = argmax softmax(S̃)`. Metrics: **QWK, MAE, Macro-F1, AUC, Accuracy** and **LOS** (Local Ordinality Score: the share of predictions whose probability is a local peak over the neighbouring grades).
+```math
+\hat{r} = r + \mathrm{MHSA}(r), \qquad P_k = \big[\,\mathrm{SOS},\ v_1, \dots, v_{16},\ \hat{r}_k,\ \mathrm{EOS}\,\big]
+```
+
+  The frozen CLIP text encoder maps each prompt $`P_k`$ to an L2-normalised **rank prototype** $`t_k`$.
+- **Similarity.** With CLIP's learned logit scale $`s`$ (clamped at 100):
+
+```math
+S_{bk} = s \cdot f_b^{\top} t_k, \qquad S \in \mathbb{R}^{B \times 5}
+```
+
+**(c) Objective, calibration & output** (`src/models/losses.py`, `src/models/sms.py`)
+
+The support set is trained with
+
+```math
+\mathcal{L} = \mathcal{L}_{\mathrm{CE}} + \lambda\, \mathcal{L}_{\mathrm{rank}} + \mu\, \mathcal{L}_{\mathrm{pair}}
+```
+
+- $`\mathcal{L}_{\mathrm{rank}}`$, the **ranking-aware loss** (after CLIP-DR). For a sample of grade $`y`$, similarities must rise up to $`y`$ and fall after it:
+
+```math
+\mathcal{L}_{\mathrm{rank}} = \sum_{j=1}^{y} -\log \sigma\!\left(\frac{S_j - S_{j-1}}{\tau}\right) \;+\; \sum_{j=y}^{K-2} -\log \sigma\!\left(\frac{S_j - S_{j+1}}{\tau}\right)
+```
+
+- $`\mathcal{L}_{\mathrm{pair}}`$, the **cross-modal pairwise loss** (after L2RCLIP). It penalises an image for being closer to a wrong-grade prototype, and the penalty grows with the grade distance:
+
+```math
+\mathcal{L}_{\mathrm{pair}} = \sum_{j \neq y} |y - j| \cdot \Big(-\log \sigma\big(z_y - z_j\big)\Big), \qquad z_j = \frac{f^{\top} t_j}{\tau}
+```
+
+- **SMS.** During training it records $`\mu_j`$, the mean similarity of training samples of grade $`j`$. At the end of each epoch it smooths these means across grades with a row-normalised Gaussian kernel $`G`$. At inference it shifts each column of $`S`$:
+
+```math
+\tilde{\mu} = G\,\mu, \qquad \tilde{S}_{:,j} = S_{:,j} - \mu_j + \tilde{\mu}_j
+```
+
+- **Prediction and metrics.** $`\hat{y} = \arg\max_j \, \mathrm{softmax}(\tilde{S})_j`$. Metrics: **QWK, MAE, Macro-F1, AUC, Accuracy** and **LOS**, the Local Ordinality Score. LOS is the share of predictions whose probability is a local peak over the neighbouring grades, $`p_{\hat{y}} > p_{\hat{y}-1}`$ and $`p_{\hat{y}} > p_{\hat{y}+1}`$.
 
 **(d) Experimental protocol**: AdamW (lr 1e-4, wd 1e-4), cosine schedule with a 5-epoch warm-up, early stopping on validation QWK, 16-bit mixed precision. Results are reported as mean ± std over seeds.
 
@@ -66,7 +97,7 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
 
 ---
 
-## 📊 Results
+## Results
 
 > DeepDRiD · CFP · 5 grades · mean ± std over 3 seeds. All numbers come from `results/main_results.csv` and `results/ablation_results.csv`, produced by [`notebooks/DeepDRiD_FewShot_DR_fixed.ipynb`](notebooks/DeepDRiD_FewShot_DR_fixed.ipynb).
 
@@ -103,19 +134,19 @@ Trained on only 32 images per grade, our model keeps most of its errors on neigh
 
 ### Ablation study
 
-✅ = component on. Best value per column in **bold**.
+✓ = component on. Best value per column in **bold**.
 
-| Variant | LoRA | RankFormer | ℒ_rank | ℒ_pair | SMS | QWK@16 | QWK@32 | QWK@Full | MAE@32 ↓ | AUC@32 | LOS@32 |
+| Variant | LoRA | RankFormer | $`\mathcal{L}_{\mathrm{rank}}`$ | $`\mathcal{L}_{\mathrm{pair}}`$ | SMS | QWK@16 | QWK@32 | QWK@Full | MAE@32 ↓ | AUC@32 | LOS@32 |
 |:--|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | Baseline (OrdinalCLIP-style) | | | | | | 0.615 | 0.664 | 0.769 | 0.700 | 0.781 | 0.891 |
-| Just LoRA | ✅ | | | | | 0.699 | 0.741 | 0.851 | 0.578 | 0.817 | 0.988 |
-| LoRA + ℒ_rank | ✅ | | ✅ | | | 0.715 | 0.749 | 0.867 | 0.564 | 0.822 | 0.978 |
-| w/o LoRA | | ✅ | ✅ | ✅ | ✅ | 0.490 | 0.691 | 0.775 | 0.652 | 0.789 | **1.000** |
-| w/o RankFormer | ✅ | | ✅ | ✅ | ✅ | **0.734** | **0.771** | 0.862 | **0.552** | 0.829 | **1.000** |
-| w/o ℒ_rank | ✅ | ✅ | | ✅ | ✅ | 0.673 | 0.747 | **0.870** | 0.578 | 0.813 | **1.000** |
-| w/o ℒ_pair | ✅ | ✅ | ✅ | | ✅ | 0.702 | 0.750 | 0.847 | 0.561 | **0.832** | **1.000** |
-| w/o SMS | ✅ | ✅ | ✅ | ✅ | | 0.690 | 0.759 | 0.861 | 0.563 | 0.820 | 0.979 |
-| **Ours (Full)** | ✅ | ✅ | ✅ | ✅ | ✅ | 0.696 | 0.759 | **0.870** | 0.553 | 0.823 | **1.000** |
+| Just LoRA | ✓ | | | | | 0.699 | 0.741 | 0.851 | 0.578 | 0.817 | 0.988 |
+| LoRA + $`\mathcal{L}_{\mathrm{rank}}`$ | ✓ | | ✓ | | | 0.715 | 0.749 | 0.867 | 0.564 | 0.822 | 0.978 |
+| w/o LoRA | | ✓ | ✓ | ✓ | ✓ | 0.490 | 0.691 | 0.775 | 0.652 | 0.789 | **1.000** |
+| w/o RankFormer | ✓ | | ✓ | ✓ | ✓ | **0.734** | **0.771** | 0.862 | **0.552** | 0.829 | **1.000** |
+| w/o $`\mathcal{L}_{\mathrm{rank}}`$ | ✓ | ✓ | | ✓ | ✓ | 0.673 | 0.747 | **0.870** | 0.578 | 0.813 | **1.000** |
+| w/o $`\mathcal{L}_{\mathrm{pair}}`$ | ✓ | ✓ | ✓ | | ✓ | 0.702 | 0.750 | 0.847 | 0.561 | **0.832** | **1.000** |
+| w/o SMS | ✓ | ✓ | ✓ | ✓ | | 0.690 | 0.759 | 0.861 | 0.563 | 0.820 | 0.979 |
+| **Ours (Full)** | ✓ | ✓ | ✓ | ✓ | ✓ | 0.696 | 0.759 | **0.870** | 0.553 | 0.823 | **1.000** |
 
 **Takeaways**
 - **LoRA gives the largest single gain.** Over the baseline it adds +0.08 QWK at 32-shot and +0.08 at full data. Removing it causes the largest drop of any ablation.
@@ -126,20 +157,20 @@ Trained on only 32 images per grade, our model keeps most of its errors on neigh
 
 ---
 
-## 🗂️ Repository structure
+## Repository structure
 
 ```text
 .
 ├── assets/                     # README figures (framework diagram, result plots)
 ├── configs/
-│   ├── default.yaml            # full model: LoRA + RankFormer + ℒ_rank + ℒ_pair + SMS
+│   ├── default.yaml            # full model: LoRA + RankFormer + ranking/pairwise losses + SMS
 │   ├── deepdrid_cfp.yaml       # DeepDRiD (CFP) dataset config
 │   ├── aptos_cfp.yaml          # APTOS (CFP) dataset config
 │   ├── mrdr_{cfp,oct,uwf}.yaml # MMRDR single-modality configs
 │   ├── mmrdr_multimodal.yaml   # MSO-CLIP multi-modal config (work in progress)
 │   └── baselines/              # OrdinalCLIP / CoOp+LoRA / L2RCLIP / CLIP-DR style baselines
 ├── notebooks/
-│   └── DeepDRiD_FewShot_DR_fixed.ipynb   # ⭐ main end-to-end pipeline (data → train → ablate → plots)
+│   └── DeepDRiD_FewShot_DR_fixed.ipynb   # main end-to-end pipeline (data → train → ablate → plots)
 ├── scripts/
 │   ├── prepare_external_datasets.py      # raw DeepDRiD / APTOS → CFP_manifest.csv
 │   ├── prepare_mmrdr.py                  # MMRDR manifests
@@ -161,7 +192,7 @@ Trained on only 32 images per grade, our model keeps most of its errors on neigh
 
 ---
 
-## 🚀 Getting started
+## Getting started
 
 ```bash
 git clone https://github.com/MohammadMahdi-Sharifbeigy/fewshot-ordinal-clip-dr.git
@@ -190,7 +221,7 @@ python src/data/build_splits.py --dataset DeepDRiD --modality CFP --kshots 1,2,4
 
 ---
 
-## 🧪 Reproducing the paper experiments
+## Reproducing the paper experiments
 
 **Recommended:** run [`notebooks/DeepDRiD_FewShot_DR_fixed.ipynb`](notebooks/DeepDRiD_FewShot_DR_fixed.ipynb) from top to bottom. It builds the manifest and splits, trains the full grid and every ablation (finished runs are cached), aggregates mean ± std tables, and exports figures to `results/figures/`.
 
@@ -212,8 +243,8 @@ python scripts/train.py --config configs/deepdrid_cfp.yaml data.k_shot=16 \
 |---|---|
 | w/o RankFormer | `model.prompt_learner.name=ordinalclip_rank_prompt_learner` |
 | w/o SMS | `model.sms.enabled=false` |
-| w/o ℒ_pair | `loss.mu_pairwise=0.0` |
-| w/o ℒ_rank | `loss.lambda_rank=0.0` |
+| w/o $`\mathcal{L}_{\mathrm{pair}}`$ | `loss.mu_pairwise=0.0` |
+| w/o $`\mathcal{L}_{\mathrm{rank}}`$ | `loss.lambda_rank=0.0` |
 | w/o LoRA | `model.image_encoder.lora.enabled=false` |
 
 Each run writes `results/<variant>/<MOD>_<k>shot_s<seed>/{best.ckpt,test_stats.json}`.
@@ -224,13 +255,13 @@ pytest tests/        # unit tests for losses, SMS, sampler and splits
 
 ---
 
-## 🔬 Work in progress: MSO-CLIP (multi-modal)
+## Work in progress: MSO-CLIP (multi-modal)
 
 `src/models/mso_clip_runner.py` extends the framework to the **MMRDR** dataset, which provides three modalities per patient: CFP, OCT and UWF. Each modality gets its own LoRA adapter on a shared frozen backbone. Two RankFormers produce prototypes for the two grading scales (5 grades for CFP/UWF, 3 grades for OCT). A cross-modal Transformer fuses the three visual tokens into one patient-level vector and uses a learned `[MISSING]` embedding for absent modalities. Training combines the unimodal losses with a patient-level ordinal loss.
 
 ---
 
-## 🙏 Acknowledgements & references
+## Acknowledgements & references
 
 This work builds on the ideas and open-source code below. The third-party repositories we studied or reproduced as baselines are **not** included here; please use the original sources.
 
@@ -295,7 +326,7 @@ This work builds on the ideas and open-source code below. The third-party reposi
 
 </details>
 
-## 📝 Citation
+## Citation
 
 If this work is useful to you, please cite it. The BibTeX entry will be updated when the paper is published.
 
