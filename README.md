@@ -94,12 +94,12 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
     <th align="center">Ours (Full), 32-shot, seed 1</th>
   </tr>
   <tr>
-    <td align="center" width="38%"><img src="assets/DeepDrID-simulation.png" alt="Row-normalised confusion matrix of the OrdinalCLIP baseline on DeepDRiD" width="100%"/></td>
-    <td align="center" width="62%"><img src="assets/confusion_ours_k32_s1.png" alt="Confusion matrix (counts and row-normalised) of our full model at 32 shots, seed 1, on DeepDRiD-CFP" width="100%"/></td>
+    <td align="center" width="50%"><img src="assets/DeepDrID-simulation.png" alt="Row-normalised confusion matrix of the OrdinalCLIP baseline on DeepDRiD" width="100%"/></td>
+    <td align="center" width="50%"><img src="assets/confusion_ours_k32_s1.png" alt="Row-normalised confusion matrix of our full model at 32 shots, seed 1, on DeepDRiD-CFP" width="100%"/></td>
   </tr>
 </table>
 
-Our model trains on only 32 images per grade, yet most of its errors fall on the grades next to the true one, close to the diagonal. Grade 4 is still often predicted as grade 3, the same weakness the OrdinalCLIP baseline shows.
+Trained on only 32 images per grade, our model keeps most of its errors on neighbouring grades. Compared with the baseline, it recognises proliferative DR (grade 4) more often: 0.300 vs. 0.075, with fewer of those cases pushed down to grade 3 (0.400 vs. 0.650). It is also better on grades 0 and 1. The baseline is stronger on grades 2 and 3.
 
 ### Ablation study
 
