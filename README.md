@@ -40,8 +40,7 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
   <img src="assets/framework.svg" alt="Framework overview: (a) data and few-shot protocol, (b) ordinal-aware CLIP model with LoRA image encoder and RankFormer prompt learner, (c) training objective, SMS calibration and evaluation, (d) experimental protocol" width="100%"/>
 </p>
 
-<details open>
-<summary><b>Block-by-block walkthrough</b></summary>
+### Block-by-block walkthrough
 
 **(a) Data & few-shot protocol**
 - `scripts/prepare_external_datasets.py` turns the raw DeepDRiD / APTOS folders into a standard `CFP_manifest.csv` (`path, modality, grade, lesion, lr, split`).
@@ -93,7 +92,6 @@ The support set is trained with
 
 **(d) Experimental protocol**: AdamW (lr 1e-4, wd 1e-4), cosine schedule with a 5-epoch warm-up, early stopping on validation QWK, 16-bit mixed precision. Results are reported as mean ± std over seeds.
 
-</details>
 
 ---
 
