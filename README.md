@@ -251,6 +251,42 @@ Each run writes `results/<variant>/<MOD>_<k>shot_s<seed>/{best.ckpt,test_stats.j
 pytest tests/        # unit tests for losses, SMS, sampler and splits
 ```
 
+`scripts/train.py` uses `bf16-mixed` when the GPU supports it and `32-true` otherwise; set `train.precision` to override. fp16 is avoided because the CLIP RN50 visual tower overflows to NaN under fp16 autocast.
+
+---
+
+## Direction 1: direct ordinal-geometry text embeddings (branch `direction1-ordinal-geometry`)
+
+This direction replaces the prompt learner with five grade embeddings $`t_0, \dots, t_4`$ that live directly in CLIP's joint space (`src/models/prompt_learner/ordinal_geometry.py`).
+
+**How the embeddings are built and trained**
+- Each embedding starts from a grade sentence encoded once by the frozen text encoder: ICDR clinical definitions by default, plain grade names, or random orthonormal vectors.
+- The embeddings are kept on the unit sphere and trained end-to-end with LoRA.
+- Three geometry losses (`src/models/geometry_losses.py`) enforce the grade order:
+  - a **distance ladder**: distance grows with the grade gap, with margin $`m`$;
+  - a **smooth path**: second-order smoothness plus step alignment;
+  - a per-grade **anchor** back to the initial text.
+
+**Metrics.** Every run also reports the confusion matrix, ECE, and **ODC** (Ordinal Decay Consistency, `src/utils/ordinal_metrics.py`). ODC measures whether error mass decreases monotonically away from the diagonal in each row of the confusion matrix, in two variants: `odc_full` and `odc_offdiag`. Direct-embedding runs also write per-epoch geometry diagnostics to `geometry.json`.
+
+**Configs**
+- **Main method:** `configs/direction1/d1_full.yaml` (CE + CLIP-DR ranking + L2RCLIP pairwise + SMS + geometry).
+- **Ablations** (`configs/direction1/`):
+  - `d1_ce_geometry`, `d1_no_geometry`;
+  - `d1_no_ladder`, `d1_no_path`, `d1_no_anchor`;
+  - `d1_init_plain`, `d1_init_random`;
+  - `d1_anchor_invsqrt` (λ from DeepDRiD training-split prevalence);
+  - `d1_rankformer` (the current model).
+- **Matched baselines** (LoRA r = 16, same recipe), in `configs/baselines/`: `clipdr_matched`, `l2rclip_matched`, `clap_matched`.
+- **Native-recipe baselines:** `clipdr_on_ordinalclip`, `l2rclip_stock`, `clap_native`.
+
+Design and plan: `docs/superpowers/specs/2026-10-17-direction1-ordinal-geometry-design.md`, `docs/superpowers/plans/2026-10-17-direction1-ordinal-geometry.md`.
+
+```bash
+python scripts/sweep.py --config configs/direction1/d1_full.yaml --kshots 0,1,2,4,8,16,32,-1 --seeds 1,2,3 \
+       --extra "data.manifest=<abs>/CFP_manifest.csv data.splits_dir=<abs>/splits"
+```
+
 ---
 
 ## Work in progress: MSO-CLIP (multi-modal)
