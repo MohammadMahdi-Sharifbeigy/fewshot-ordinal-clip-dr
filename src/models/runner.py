@@ -41,25 +41,40 @@ class FewShotOrdinalRunner(pl.LightningModule):
 
         # 3. Prompt Learner
         learner_name = cfg.model.prompt_learner.name
+        pl_cfg = cfg.model.prompt_learner
         if learner_name == "rankformer_prompt_learner":
             self.prompt_learner = RankFormerPromptLearner(
                 self.clip_model,
                 num_ranks=self.num_ranks,
-                num_context_tokens=cfg.model.prompt_learner.num_tokens_for_context,
-                attn_heads=cfg.model.prompt_learner.attn_heads,
+                num_context_tokens=pl_cfg.num_tokens_for_context,
+                attn_heads=pl_cfg.attn_heads,
+                rank_param=pl_cfg.get("rank_param", "interpolated"),
+                num_base=pl_cfg.get("num_base", 3),
+                block=pl_cfg.get("rankformer_block", "paper"),
+                alpha=pl_cfg.get("rankformer_alpha", 0.5),
             )
         elif learner_name == "ordinalclip_rank_prompt_learner":
             self.prompt_learner = OrdinalCLIPHead(
                 self.clip_model,
                 num_ranks=self.num_ranks,
-                num_context_tokens=cfg.model.prompt_learner.num_tokens_for_context,
-                num_base=3,
+                num_context_tokens=pl_cfg.num_tokens_for_context,
+                num_base=pl_cfg.get("num_base", 3),
             )
         else:
             raise ValueError(f"Unknown prompt learner: {learner_name}")
 
-        # 4. SMS calibration
-        self.sms = SMS(num_ranks=self.num_ranks) if cfg.model.sms.enabled else None
+        # 4. SMS calibration (training-time, CLIP-DR / FDS form)
+        sms_cfg = cfg.model.sms
+        self.sms = (
+            SMS(
+                num_ranks=self.num_ranks,
+                kernel_size=sms_cfg.get("kernel_size", 5),
+                sigma=sms_cfg.get("sigma", 2.0),
+                momentum=sms_cfg.get("momentum", 0.9),
+            )
+            if sms_cfg.enabled
+            else None
+        )
 
         # 5. Losses
         self.criterion_main = nn.CrossEntropyLoss()
@@ -122,7 +137,10 @@ class FewShotOrdinalRunner(pl.LightningModule):
         target = target.long()
 
         if self.sms is not None:
+            # Collect this epoch's statistics from the raw similarities, then
+            # calibrate with the statistics frozen at the end of the last epoch
             self.sms.update_stats(sim, target)
+            sim = self.sms(sim, target)
 
         loss_main = self.criterion_main(sim, target)
         loss_rank = (
@@ -131,7 +149,9 @@ class FewShotOrdinalRunner(pl.LightningModule):
             else sim.new_tensor(0.0)
         )
         loss_pairwise = (
-            self.criterion_pairwise(image_features.float(), text_features.float(), target)
+            self.criterion_pairwise(
+                image_features.float(), text_features.float(), target, logit_scale=logit_scale.float()
+            )
             if self.mu_pairwise > 0
             else sim.new_tensor(0.0)
         )
@@ -168,9 +188,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0) # Prevent FP16 NaN explosion
         sim = logit_scale * image_features @ text_features.T
 
-        if self.sms is not None:
-            sim = self.sms(sim)
-
+        # SMS needs ground-truth grades, so it only acts during training
         probs = F.softmax(sim, dim=-1)
         preds = probs.argmax(dim=-1)
 

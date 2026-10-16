@@ -58,6 +58,11 @@ class CrossModalPairwiseLoss(nn.Module):
 
     Penalises images being closer to wrong-rank prototypes, weighted by
     the ordinal distance |y_i − j|.
+
+    Similarities are computed on the same scale as the main logits
+    (logit_scale · cos / tau). On raw cosines (logit_scale = 1) the pairwise
+    differences are ~0.01, so −log σ(Δ) collapses to a near-constant term
+    with almost no ranking signal.
     """
 
     def __init__(self, num_ranks: int = 5, tau: float = 1.0):
@@ -70,19 +75,21 @@ class CrossModalPairwiseLoss(nn.Module):
         image_feats: torch.Tensor,
         rank_prototypes: torch.Tensor,
         targets: torch.Tensor,
+        logit_scale: torch.Tensor | float = 1.0,
     ) -> torch.Tensor:
         """
         Args:
             image_feats:     [B, d]   — L2-normalised image embeddings
             rank_prototypes: [K, d]   — L2-normalised text embeddings
             targets:         [B]      — ground-truth rank indices in [0, K-1]
+            logit_scale:     CLIP logit scale (exp of the learnt log-scale)
         Returns:
             Scalar loss.
         """
         B = image_feats.size(0)
         K = self.num_ranks
 
-        sim = image_feats @ rank_prototypes.T / self.tau  # [B, K]
+        sim = logit_scale * image_feats @ rank_prototypes.T / self.tau  # [B, K]
 
         # Ground-truth similarities: sim_yi[b] = sim[b, targets[b]]
         sim_yi = sim[torch.arange(B, device=sim.device), targets]  # [B]

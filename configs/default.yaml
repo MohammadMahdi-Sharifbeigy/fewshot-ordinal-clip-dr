@@ -12,8 +12,19 @@ model:
     num_ranks: 5
     num_tokens_for_context: 16
     attn_heads: 4
+    # Rank tokens: "interpolated" (OrdinalCLIP bases, shared with the
+    # ordinalclip_rank_prompt_learner ablation) or "free" (one token per rank)
+    rank_param: "interpolated"
+    num_base: 3
+    # RankFormer block: "paper" (L2RCLIP: LN -> MSA -> FFN, alpha blend) or "simple" (R + MSA(R))
+    rankformer_block: "paper"
+    rankformer_alpha: 0.5
   sms:
     enabled: true
+    # CLIP-DR / FDS settings (official code values)
+    kernel_size: 5
+    sigma: 2.0
+    momentum: 0.9
 data:
   modality: "CFP"
   k_shot: 4
@@ -25,6 +36,9 @@ data:
   manifest: "data/MMRDR/CFP_manifest.csv"
   splits_dir: "data/MMRDR/splits"
   num_workers: 0
+  # Full-data runs (k_shot = -1): stratified fraction of the train split held
+  # out for validation / checkpoint selection (the test split is never used)
+  full_val_fraction: 0.2
 loss:
   lambda_rank: 1.0
   mu_pairwise: 1.0

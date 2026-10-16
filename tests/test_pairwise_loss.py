@@ -29,5 +29,20 @@ def test_pairwise_loss():
     
     image_feats_wrong = torch.tensor([[-1.0, 0.0, 0.0]]) # Matches rank 4
     loss_wrong = criterion(image_feats_wrong, rank_prototypes, target)
-    
+
     assert loss_wrong > loss
+
+
+def test_pairwise_loss_uses_logit_scale():
+    criterion = CrossModalPairwiseLoss(num_ranks=3, tau=1.0)
+    # Realistic CLIP cosines: all ~0.2, correct rank only slightly higher
+    image_feats = torch.tensor([[1.0, 0.0]])
+    rank_prototypes = torch.tensor([[0.21, 0.0], [0.20, 0.0], [0.19, 0.0]])
+    target = torch.tensor([0])
+
+    raw = criterion(image_feats, rank_prototypes, target)
+    scaled = criterion(image_feats, rank_prototypes, target, logit_scale=100.0)
+    # On raw cosines the loss sits at the uninformative ~log(2) per pair;
+    # on the logit scale a correctly ranked image is penalised much less
+    assert raw > 0.65 * 3
+    assert scaled < raw

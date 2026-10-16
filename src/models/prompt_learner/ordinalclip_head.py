@@ -2,6 +2,24 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+def interpolation_weights(num_ranks: int, num_base: int, dtype=torch.float32) -> torch.Tensor:
+    """Linear interpolation weights [num_ranks, num_base] mapping base to rank embeddings."""
+    weights = torch.zeros((num_ranks, num_base), dtype=dtype)
+    for i in range(num_ranks):
+        # map i in [0, num_ranks-1] to pos in [0, num_base-1]
+        pos = i * (num_base - 1) / max(1, num_ranks - 1)
+        left = int(pos)
+        right = min(left + 1, num_base - 1)
+        alpha = pos - left
+        if left == right:
+            weights[i, left] = 1.0
+        else:
+            weights[i, left] = 1.0 - alpha
+            weights[i, right] = alpha
+    return weights
+
+
 class OrdinalCLIPHead(nn.Module):
     """
     OrdinalCLIP's plain interpolated rank-prompt head (Ablation only)
@@ -49,19 +67,8 @@ class OrdinalCLIPHead(nn.Module):
             
         # Interpolate ranks
         # Weighting: simple linear distance based interpolation
-        weights = torch.zeros((self.num_ranks, self.num_base), dtype=self.dtype, device=self.base_embeddings.device)
-        for i in range(self.num_ranks):
-            # map i in [0, num_ranks-1] to pos in [0, num_base-1]
-            pos = i * (self.num_base - 1) / max(1, self.num_ranks - 1)
-            left = int(pos)
-            right = min(left + 1, self.num_base - 1)
-            alpha = pos - left
-            if left == right:
-                weights[i, left] = 1.0
-            else:
-                weights[i, left] = 1.0 - alpha
-                weights[i, right] = alpha
-                
+        weights = interpolation_weights(self.num_ranks, self.num_base, self.dtype).to(self.base_embeddings.device)
+
         # [num_ranks, num_base] @ [num_base, ctx_dim] -> [num_ranks, ctx_dim]
         rank_embeddings = weights @ self.base_embeddings
         rank_embeddings = rank_embeddings.unsqueeze(1)
