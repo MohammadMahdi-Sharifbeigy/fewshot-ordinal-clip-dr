@@ -8,9 +8,61 @@ from sklearn.metrics import cohen_kappa_score, mean_absolute_error, f1_score, ro
 from .clip_backbone import load_clip_model, TextEncoder
 from .prompt_learner.rankformer import RankFormerPromptLearner
 from .prompt_learner.ordinalclip_head import OrdinalCLIPHead
+from .prompt_learner.ordinal_geometry import OrdinalGeometryEmbeddings, build_init_embeddings
 from .losses import RankingAwareLoss, CrossModalPairwiseLoss
+from .geometry_losses import anchor_loss, inverse_sqrt_freq_lambdas, ladder_loss, path_losses
 from .sms import SMS
 from .lora_adapter import attach_lora, set_trainable
+from ..utils.ordinal_metrics import ordinal_shape_metrics
+
+
+def resolve_loss_weights(loss_cfg) -> dict[str, float]:
+    """Loss weights from the config; old keys lambda_rank / mu_pairwise map to w_clipdr / w_l2r."""
+    def get(key, fallback_key=None, default=0.0):
+        if key in loss_cfg:
+            return float(loss_cfg[key])
+        if fallback_key is not None and fallback_key in loss_cfg:
+            return float(loss_cfg[fallback_key])
+        return float(default)
+
+    return {
+        "w_ce": get("w_ce", default=1.0),
+        "w_clipdr": get("w_clipdr", "lambda_rank"),
+        "w_l2r": get("w_l2r", "mu_pairwise"),
+        "w_sms": get("w_sms", default=1.0),
+        "w_ladder": get("w_ladder"),
+        "w_path": get("w_path"),
+        "w_anchor": get("w_anchor"),
+    }
+
+
+def population_grade_counts(manifest_path: str, num_ranks: int) -> list[int]:
+    """Grade counts of the full training split (manifest rows with split == "train")."""
+    import pandas as pd
+
+    df = pd.read_csv(manifest_path)
+    grades = df.loc[df["split"] == "train", "grade"].astype(int)
+    return [int((grades == k).sum()) for k in range(num_ranks)]
+
+
+def clap_lambdas(probs: torch.Tensor, targets: torch.Tensor, num_ranks: int) -> torch.Tensor:
+    """CLAP λ init: mean zero-shot probability of grade k over the support images of grade k.
+
+    A grade without support images keeps λ = 1.
+    """
+    lam = torch.ones(num_ranks)
+    for k in range(num_ranks):
+        mask = targets == k
+        if mask.any():
+            lam[k] = probs[mask, k].float().mean()
+    return lam
+
+
+def unpack_batch(batch) -> tuple[torch.Tensor, torch.Tensor]:
+    """(image, target) from a tuple/list batch (image, grade, lesion, path) or a dict batch."""
+    if isinstance(batch, dict):
+        return batch["image"], batch["target"]
+    return batch[0], batch[1]
 
 
 class FewShotOrdinalRunner(pl.LightningModule):
@@ -24,6 +76,18 @@ class FewShotOrdinalRunner(pl.LightningModule):
         # 1. Load CLIP (cast to float32 to prevent AMP GradScaler crash on static FP16 grads)
         self.clip_model = load_clip_model(cfg.model.image_encoder.name)
         self.text_encoder = TextEncoder(self.clip_model)
+
+        # Direct grade embeddings are initialised from the frozen text encoder
+        # before LoRA wraps the visual tower (encode_text reads visual.conv1's dtype)
+        pl_cfg = cfg.model.prompt_learner
+        init_embeddings = None
+        if pl_cfg.name == "ordinal_geometry_embeddings":
+            init_embeddings = build_init_embeddings(
+                self.clip_model,
+                init_mode=pl_cfg.get("init_mode", "icdr_clinical"),
+                num_ranks=self.num_ranks,
+                seed=cfg.data.seed,
+            )
 
         # 2. Attach LoRA to visual encoder
         if cfg.model.image_encoder.lora.enabled:
@@ -40,9 +104,10 @@ class FewShotOrdinalRunner(pl.LightningModule):
             )
 
         # 3. Prompt Learner
-        learner_name = cfg.model.prompt_learner.name
-        pl_cfg = cfg.model.prompt_learner
-        if learner_name == "rankformer_prompt_learner":
+        learner_name = pl_cfg.name
+        if learner_name == "ordinal_geometry_embeddings":
+            self.prompt_learner = OrdinalGeometryEmbeddings(init_embeddings)
+        elif learner_name == "rankformer_prompt_learner":
             self.prompt_learner = RankFormerPromptLearner(
                 self.clip_model,
                 num_ranks=self.num_ranks,
@@ -63,7 +128,14 @@ class FewShotOrdinalRunner(pl.LightningModule):
         else:
             raise ValueError(f"Unknown prompt learner: {learner_name}")
 
-        # 4. SMS calibration (training-time, CLIP-DR / FDS form)
+        self.direct = bool(getattr(self.prompt_learner, "direct_prototypes", False))
+        self.weights = resolve_loss_weights(cfg.loss)
+        self.anchor_weighting = pl_cfg.get("anchor_weighting", "uniform")
+        self.path_mode = pl_cfg.get("path_mode", "both")
+        self.ladder_margin = float(pl_cfg.get("ladder_margin", 0.05))
+        self.renorm_after_step = bool(pl_cfg.get("renorm_after_step", True))
+
+        # 4. SMS calibration (training-time, CLIP-DR / FDS form); loss.w_sms = 0 also disables it
         sms_cfg = cfg.model.sms
         self.sms = (
             SMS(
@@ -72,7 +144,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
                 sigma=sms_cfg.get("sigma", 2.0),
                 momentum=sms_cfg.get("momentum", 0.9),
             )
-            if sms_cfg.enabled
+            if sms_cfg.enabled and self.weights["w_sms"] != 0
             else None
         )
 
@@ -80,9 +152,6 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.criterion_main = nn.CrossEntropyLoss()
         self.criterion_rank = RankingAwareLoss(num_ranks=self.num_ranks, tau=cfg.loss.tau)
         self.criterion_pairwise = CrossModalPairwiseLoss(num_ranks=self.num_ranks, tau=cfg.loss.tau)
-
-        self.lambda_rank = cfg.loss.lambda_rank
-        self.mu_pairwise = cfg.loss.mu_pairwise
 
         # 6. Freeze / unfreeze
         set_trainable(
@@ -100,6 +169,8 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.val_targets: list[torch.Tensor] = []
         self.val_probs: list[torch.Tensor] = []
         self.latest_metrics: dict = {}
+        # Per-epoch geometry diagnostics of the direct grade embeddings
+        self.geometry_history: list[dict] = []
 
     # ------------------------------------------------------------------
     # Forward
@@ -109,9 +180,13 @@ class FewShotOrdinalRunner(pl.LightningModule):
         image_features = self.clip_model.visual(image.type(self.clip_model.dtype))
         image_features = F.normalize(image_features, dim=-1)
 
-        prompts, tokenized_prompts = self.prompt_learner()
-        text_features = self.text_encoder(prompts, tokenized_prompts)
-        text_features = F.normalize(text_features, dim=-1)
+        if self.direct:
+            # Grade embeddings live in the joint space; the text encoder is not called
+            text_features = self.prompt_learner()
+        else:
+            prompts, tokenized_prompts = self.prompt_learner()
+            text_features = self.text_encoder(prompts, tokenized_prompts)
+            text_features = F.normalize(text_features, dim=-1)
 
         return image_features, text_features
 
@@ -119,12 +194,48 @@ class FewShotOrdinalRunner(pl.LightningModule):
     # Training
     # ------------------------------------------------------------------
 
+    def on_train_start(self) -> None:
+        if not self.direct:
+            return
+        if self.anchor_weighting == "inverse_sqrt_freq":
+            counts = population_grade_counts(self.cfg.data.manifest, self.num_ranks)
+            self.prompt_learner.set_anchor_lambdas(inverse_sqrt_freq_lambdas(counts))
+        elif self.anchor_weighting == "clap":
+            self.prompt_learner.set_anchor_lambdas(self._clap_zero_shot_lambdas())
+        elif self.anchor_weighting != "uniform":
+            raise ValueError(f"Unknown anchor_weighting: {self.anchor_weighting}")
+        print(f"Anchor lambdas ({self.anchor_weighting}): "
+              f"{[round(x, 4) for x in self.prompt_learner.anchor_lambdas.tolist()]}")
+
+    @torch.no_grad()
+    def _clap_zero_shot_lambdas(self) -> torch.Tensor:
+        """Zero-shot softmax on the support set with the initial embeddings (CLAP's λ init)."""
+        was_training = self.training
+        self.eval()
+        logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0)
+        t_hat = self.prompt_learner()
+        probs, targets = [], []
+        for batch in self.trainer.datamodule.train_dataloader():
+            image, target = unpack_batch(batch)
+            image = image.to(self.device)
+            f = F.normalize(self.clip_model.visual(image.type(self.clip_model.dtype)), dim=-1)
+            probs.append(F.softmax((logit_scale * f @ t_hat.T).float(), dim=-1).cpu())
+            targets.append(torch.as_tensor(target).long().cpu())
+        if was_training:
+            self.train()
+        return clap_lambdas(torch.cat(probs), torch.cat(targets), self.num_ranks)
+
     def on_train_epoch_start(self) -> None:
         if self.sms is not None:
             self.sms.reset_stats()
 
+    def on_train_batch_end(self, outputs, batch, batch_idx: int) -> None:
+        # Project the raw parameter back onto the sphere after every optimiser step
+        if self.direct and self.renorm_after_step:
+            self.prompt_learner.renormalize_()
+
     def training_step(self, batch, batch_idx):
-        image, target, _, _ = batch
+        image, target = unpack_batch(batch)
         image_features, text_features = self(image)
 
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0) # Prevent FP16 NaN explosion
@@ -142,27 +253,45 @@ class FewShotOrdinalRunner(pl.LightningModule):
             self.sms.update_stats(sim, target)
             sim = self.sms(sim, target)
 
-        loss_main = self.criterion_main(sim, target)
-        loss_rank = (
-            self.criterion_rank(sim, target)
-            if self.lambda_rank > 0
-            else sim.new_tensor(0.0)
-        )
-        loss_pairwise = (
-            self.criterion_pairwise(
-                image_features.float(), text_features.float(), target, logit_scale=logit_scale.float()
-            )
-            if self.mu_pairwise > 0
-            else sim.new_tensor(0.0)
-        )
+        w = self.weights
+        zero = sim.new_tensor(0.0)
+        terms = {
+            "ce": self.criterion_main(sim, target) if w["w_ce"] != 0 else zero,
+            "clipdr": self.criterion_rank(sim, target) if w["w_clipdr"] != 0 else zero,
+            "l2r": (
+                self.criterion_pairwise(
+                    image_features.float(), text_features.float(), target, logit_scale=logit_scale.float()
+                )
+                if w["w_l2r"] != 0
+                else zero
+            ),
+        }
+        loss = w["w_ce"] * terms["ce"] + w["w_clipdr"] * terms["clipdr"] + w["w_l2r"] * terms["l2r"]
 
-        loss = loss_main + self.lambda_rank * loss_rank + self.mu_pairwise * loss_pairwise
+        if self.direct:
+            t_hat = text_features.float()
+            l_smooth, l_align = path_losses(t_hat)
+            l_path = {"smooth": l_smooth, "align": l_align, "both": l_smooth + l_align}[self.path_mode]
+            terms["ladder"] = ladder_loss(t_hat, self.ladder_margin)
+            terms["smooth"], terms["align"] = l_smooth, l_align
+            terms["anchor"] = anchor_loss(t_hat, self.prompt_learner.anchors, self.prompt_learner.anchor_lambdas)
+            loss = (
+                loss
+                + w["w_ladder"] * terms["ladder"]
+                + w["w_path"] * l_path
+                + w["w_anchor"] * terms["anchor"]
+            )
+
+        for name, value in terms.items():
+            self.log(f"train_l_{name}", value.detach(), on_step=False, on_epoch=True)
         self.log("train_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         return loss
 
     def on_train_epoch_end(self) -> None:
         if self.sms is not None:
             self.sms.compute_smoothed_stats()
+        if self.direct:
+            self.geometry_history.append({"epoch": int(self.current_epoch), **self.prompt_learner.diagnostics()})
 
     # ------------------------------------------------------------------
     # Validation / Test
@@ -182,7 +311,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
 
     @torch.no_grad()
     def _shared_eval_step(self, batch):
-        image, target, _, _ = batch
+        image, target = unpack_batch(batch)
         image_features, text_features = self(image)
 
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0) # Prevent FP16 NaN explosion
@@ -238,9 +367,15 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.log(f"{prefix}_acc", acc)
         self.log(f"{prefix}_los", los)
 
+        shape = ordinal_shape_metrics(targets, preds, probs, K)
+        self.log(f"{prefix}_odc_full", shape["odc_full"])
+        self.log(f"{prefix}_odc_offdiag", shape["odc_offdiag"])
+        self.log(f"{prefix}_ece", shape["ece"])
+
         self.latest_metrics = {
             "qwk": qwk, "mae": mae, "f1": macro_f1,
             "auc": auc, "acc": acc, "los": los,
+            **shape,
         }
 
         self.val_preds.clear()
@@ -252,18 +387,28 @@ class FewShotOrdinalRunner(pl.LightningModule):
     # ------------------------------------------------------------------
 
     def configure_optimizers(self):
-        trainable_params = [p for p in self.parameters() if p.requires_grad]
-
         optimizer_name = self.cfg.train.get("optimizer", "adam").lower()
         lr = self.cfg.train.lr
         wd = self.cfg.train.get("weight_decay", 1e-4)
 
-        if optimizer_name == "adam":
-            optimizer = torch.optim.Adam(trainable_params, lr=lr, weight_decay=wd)
-        elif optimizer_name == "adamw":
-            optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=wd)
+        if self.direct:
+            # Grade embeddings: own lr, no weight decay (decay on a sphere-projected
+            # parameter only shrinks its norm and changes the effective step size)
+            text_param = self.prompt_learner.t
+            others = [p for p in self.parameters() if p.requires_grad and p is not text_param]
+            params = [
+                {"params": others},
+                {"params": [text_param], "lr": self.cfg.train.get("text_lr", lr), "weight_decay": 0.0},
+            ]
         else:
-            optimizer = torch.optim.SGD(trainable_params, lr=lr, weight_decay=wd, momentum=0.9)
+            params = [p for p in self.parameters() if p.requires_grad]
+
+        if optimizer_name == "adam":
+            optimizer = torch.optim.Adam(params, lr=lr, weight_decay=wd)
+        elif optimizer_name == "adamw":
+            optimizer = torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+        else:
+            optimizer = torch.optim.SGD(params, lr=lr, weight_decay=wd, momentum=0.9)
 
         scheduler_name = self.cfg.train.get("scheduler", None)
         if scheduler_name == "cosine":
