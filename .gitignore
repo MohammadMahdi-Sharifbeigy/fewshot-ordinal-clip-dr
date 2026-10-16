@@ -17,8 +17,9 @@ wandb/
 .DS_Store
 
 # Data and Results
-data/
+/data/
 results/
+results_v2/
 *.csv
 *.log
 *.zip
