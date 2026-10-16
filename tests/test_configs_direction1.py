@@ -26,6 +26,8 @@ def test_key_switches():
     native = train.load_config("configs/baselines/clap_native.yaml")
     assert native.train.optimizer == "sgd" and native.model.image_encoder.lora.enabled is False
     assert native.model.prompt_learner.anchor_weighting == "clap"
+    # CLAP's native recipe trains the full schedule (no validation-based early stopping)
+    assert native.train.early_stopping_patience >= native.train.epochs
 
 
 def test_matched_baselines_use_lora():

@@ -1,3 +1,4 @@
+import copy
 import os
 import numpy as np
 import pandas as pd
@@ -158,6 +159,18 @@ class FewShotDataModule(pl.LightningDataModule):
         else:
             batch_size = min(len(self.support_dataset), self.batch_query)
         return self._make_loader(self.support_dataset, shuffle=True, batch_size=batch_size)
+
+    def support_eval_dataloader(self) -> DataLoader | None:
+        """Support set with the test transform and fixed order (no augmentation).
+
+        Used for statistics that must come from clean support images, e.g. CLAP's
+        zero-shot λ initialisation.
+        """
+        if self.support_dataset is None or len(self.support_dataset) == 0:
+            return None
+        clean = copy.copy(self.support_dataset)
+        clean.transform = get_transform(self.image_size, is_train=False)
+        return self._make_loader(clean, shuffle=False, batch_size=self.batch_query)
 
     def val_dataloader(self) -> DataLoader | None:
         if self.query_dataset is None:

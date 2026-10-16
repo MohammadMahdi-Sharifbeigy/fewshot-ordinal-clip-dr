@@ -12,3 +12,6 @@ train:
   scheduler: "cosine"
   warmup_epochs: 0
   weight_decay: 0.0
+  # CLAP uses no validation-based early stopping: train the full 300 epochs
+  early_stopping_patience: 300
+

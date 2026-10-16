@@ -1,11 +1,10 @@
-import shlex
 import subprocess
 import argparse
 import sys
 from pathlib import Path
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Sweep over k-shot values and seeds using train.py"
     )
@@ -19,11 +18,23 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated list of seeds (default: 1,2,3,4,5)",
     )
     parser.add_argument(
-        "--extra", type=str, default="",
-        help="Extra OmegaConf overrides appended to every run, e.g. "
-             "'data.manifest=/abs/CFP_manifest.csv data.splits_dir=/abs/splits'",
+        "--extra", nargs="*", default=[],
+        help="Extra OmegaConf overrides appended to every run, one argument each "
+             "(quote any that contain spaces), e.g. "
+             "--extra \"data.manifest=/abs/CFP_manifest.csv\" \"data.splits_dir=/abs/splits\"",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def build_command(config: str, k: int, seed: int, extra: list[str]) -> list[str]:
+    """train.py command for one (k, seed) run; each override stays a single argv token."""
+    return [
+        sys.executable, "scripts/train.py",
+        "--config", config,
+        f"data.k_shot={k}",
+        f"data.seed={seed}",
+        *extra,
+    ]
 
 
 def main() -> None:
@@ -39,13 +50,7 @@ def main() -> None:
         for s in seeds:
             done += 1
             print(f"\n[{done}/{total}] config={args.config}  k={k}  seed={s}")
-            cmd = [
-                sys.executable, "scripts/train.py",
-                "--config", args.config,
-                f"data.k_shot={k}",
-                f"data.seed={s}",
-                *shlex.split(args.extra, posix=False),
-            ]
+            cmd = build_command(args.config, k, s, args.extra)
             result = subprocess.run(cmd, check=False)
             if result.returncode != 0:
                 print(f"[!] Run failed (k={k}, seed={s}) — continuing sweep.")

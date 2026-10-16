@@ -215,7 +215,8 @@ class FewShotOrdinalRunner(pl.LightningModule):
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0)
         t_hat = self.prompt_learner()
         probs, targets = [], []
-        for batch in self.trainer.datamodule.train_dataloader():
+        # Clean support images (test transform, fixed order), as in CLAP's zero-shot init
+        for batch in self.trainer.datamodule.support_eval_dataloader():
             image, target = unpack_batch(batch)
             image = image.to(self.device)
             f = F.normalize(self.clip_model.visual(image.type(self.clip_model.dtype)), dim=-1)

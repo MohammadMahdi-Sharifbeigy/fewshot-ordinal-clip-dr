@@ -284,7 +284,7 @@ Design and plan: `docs/superpowers/specs/2026-10-17-direction1-ordinal-geometry-
 
 ```bash
 python scripts/sweep.py --config configs/direction1/d1_full.yaml --kshots 0,1,2,4,8,16,32,-1 --seeds 1,2,3 \
-       --extra "data.manifest=<abs>/CFP_manifest.csv data.splits_dir=<abs>/splits"
+       --extra "data.manifest=<abs>/CFP_manifest.csv" "data.splits_dir=<abs>/splits"
 ```
 
 ---
