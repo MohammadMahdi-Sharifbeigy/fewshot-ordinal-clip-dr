@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import argparse
 import sys
@@ -16,6 +17,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--seeds",  type=str, default="1,2,3,4,5",
         help="Comma-separated list of seeds (default: 1,2,3,4,5)",
+    )
+    parser.add_argument(
+        "--extra", type=str, default="",
+        help="Extra OmegaConf overrides appended to every run, e.g. "
+             "'data.manifest=/abs/CFP_manifest.csv data.splits_dir=/abs/splits'",
     )
     return parser.parse_args()
 
@@ -38,6 +44,7 @@ def main() -> None:
                 "--config", args.config,
                 f"data.k_shot={k}",
                 f"data.seed={s}",
+                *shlex.split(args.extra, posix=False),
             ]
             result = subprocess.run(cmd, check=False)
             if result.returncode != 0:

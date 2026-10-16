@@ -42,11 +42,12 @@ def load_config(config_path: str, overrides: list[str] | None = None) -> DictCon
     cfg = OmegaConf.load(path)
 
     if "defaults" in cfg:
-        # Merge all defaults in order, then overlay the specific config on top
+        # Merge all defaults in order (each resolved recursively, so a default
+        # may itself have defaults), then overlay the specific config on top
         merged = OmegaConf.create({})
         for default_ref in cfg.defaults:
             default_path = _resolve_default(path, default_ref)
-            default_cfg = OmegaConf.load(default_path)
+            default_cfg = load_config(str(default_path))
             merged = OmegaConf.merge(merged, default_cfg)
         # Remove 'defaults' key before merging (it's metadata, not a model field)
         cfg_without_defaults = OmegaConf.masked_copy(
@@ -58,6 +59,17 @@ def load_config(config_path: str, overrides: list[str] | None = None) -> DictCon
         cfg = OmegaConf.merge(cfg, OmegaConf.from_cli(overrides))
 
     return cfg
+
+
+def json_safe(value):
+    """Metric values for JSON: numbers become floats, lists (e.g. confusion matrix) are kept."""
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if isinstance(value, (bool, int)):
+        return value
+    return float(value)
 
 
 # ---------------------------------------------------------------------------
@@ -134,24 +146,37 @@ def main() -> None:
     )
 
     # ── Train → Test ───────────────────────────────────────────────────────
-    trainer.fit(model, datamodule=datamodule)
+    geometry_history = []
+    if cfg.data.k_shot == 0:
+        # Zero-shot: evaluate the model in its initial state, no training
+        print("\n[*] k_shot = 0: skipping training, testing the untrained model")
+    else:
+        trainer.fit(model, datamodule=datamodule)
+        geometry_history = list(model.geometry_history)
 
-    # Load best checkpoint before testing
-    best_ckpt = callbacks[1].best_model_path
-    if best_ckpt:
-        print(f"\n[*] Loading best checkpoint: {best_ckpt}")
-        model = FewShotOrdinalRunner.load_from_checkpoint(best_ckpt, cfg=cfg)
+        # Load best checkpoint before testing
+        best_ckpt = callbacks[1].best_model_path
+        if best_ckpt:
+            print(f"\n[*] Loading best checkpoint: {best_ckpt}")
+            model = FewShotOrdinalRunner.load_from_checkpoint(best_ckpt, cfg=cfg)
 
     trainer.test(model, datamodule=datamodule)
 
     # ── Save metrics ───────────────────────────────────────────────────────
     stats_file = out_dir / "test_stats.json"
     with open(stats_file, "w") as f:
-        json.dump({k: float(v) for k, v in model.latest_metrics.items()}, f, indent=4)
+        json.dump(json_safe(model.latest_metrics), f, indent=4)
+
+    if geometry_history:
+        with open(out_dir / "geometry.json", "w") as f:
+            json.dump(json_safe(geometry_history), f, indent=2)
 
     print(f"\n[✓] Metrics saved to {stats_file}")
     for k, v in model.latest_metrics.items():
-        print(f"    {k:>6}: {v:.4f}")
+        if isinstance(v, (list, tuple)):
+            print(f"    {k:>6}: {v}")
+        else:
+            print(f"    {k:>6}: {v:.4f}")
 
 
 if __name__ == "__main__":
