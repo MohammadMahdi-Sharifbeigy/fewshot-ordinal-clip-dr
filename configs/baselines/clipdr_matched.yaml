@@ -1,0 +1,14 @@
+# CLIP-DR matched: OrdinalCLIP head + ranking loss + SMS, with LoRA r=16 and the shared recipe
+defaults:
+  - ../deepdrid_cfp
+model:
+  image_encoder:
+    lora:
+      enabled: true
+  prompt_learner:
+    name: "ordinalclip_rank_prompt_learner"
+  sms:
+    enabled: true
+loss:
+  lambda_rank: 1.0
+  mu_pairwise: 0.0

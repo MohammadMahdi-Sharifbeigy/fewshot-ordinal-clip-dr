@@ -1,0 +1,22 @@
+# Direction 1 (main method): direct ordinal-geometry grade embeddings,
+# CE + CLIP-DR ranking + L2RCLIP pairwise + SMS + ladder / path / anchor geometry
+defaults:
+  - ../deepdrid_cfp
+model:
+  prompt_learner:
+    name: "ordinal_geometry_embeddings"
+    init_mode: "icdr_clinical"        # icdr_clinical | plain | random_ortho
+    anchor_weighting: "uniform"       # uniform | inverse_sqrt_freq | clap
+    path_mode: "both"                 # smooth | align | both
+    ladder_margin: 0.05
+    renorm_after_step: true
+  sms:
+    enabled: true
+loss:
+  w_ce: 1.0
+  w_clipdr: 1.0
+  w_l2r: 1.0
+  w_sms: 1
+  w_ladder: 1.0
+  w_path: 1.0
+  w_anchor: 1.0

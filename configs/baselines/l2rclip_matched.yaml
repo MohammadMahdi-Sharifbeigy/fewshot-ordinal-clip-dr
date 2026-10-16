@@ -1,0 +1,14 @@
+# L2RCLIP matched: RankFormer + pairwise loss, with LoRA r=16 and the shared recipe
+defaults:
+  - ../deepdrid_cfp
+model:
+  image_encoder:
+    lora:
+      enabled: true
+  prompt_learner:
+    name: "rankformer_prompt_learner"
+  sms:
+    enabled: false
+loss:
+  lambda_rank: 0.0
+  mu_pairwise: 0.5

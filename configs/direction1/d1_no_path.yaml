@@ -1,0 +1,4 @@
+defaults:
+  - d1_full
+loss:
+  w_path: 0.0

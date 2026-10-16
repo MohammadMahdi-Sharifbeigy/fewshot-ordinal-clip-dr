@@ -1,0 +1,7 @@
+# Direct embeddings without geometry losses
+defaults:
+  - d1_full
+loss:
+  w_ladder: 0.0
+  w_path: 0.0
+  w_anchor: 0.0

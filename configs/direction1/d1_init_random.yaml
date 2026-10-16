@@ -1,0 +1,5 @@
+defaults:
+  - d1_full
+model:
+  prompt_learner:
+    init_mode: "random_ortho"

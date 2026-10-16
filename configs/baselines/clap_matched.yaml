@@ -1,0 +1,21 @@
+# CLAP matched: direct embeddings, plain init, CE + anchor with CLAP lambda, LoRA r=16, shared recipe
+defaults:
+  - ../deepdrid_cfp
+model:
+  image_encoder:
+    lora:
+      enabled: true
+  prompt_learner:
+    name: "ordinal_geometry_embeddings"
+    init_mode: "plain"
+    anchor_weighting: "clap"
+    renorm_after_step: true
+  sms:
+    enabled: false
+loss:
+  w_ce: 1.0
+  w_clipdr: 0.0
+  w_l2r: 0.0
+  w_ladder: 0.0
+  w_path: 0.0
+  w_anchor: 1.0

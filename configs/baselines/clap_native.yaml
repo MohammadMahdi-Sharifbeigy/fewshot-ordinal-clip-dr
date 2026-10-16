@@ -1,0 +1,14 @@
+# CLAP native recipe: frozen image encoder, SGD lr 0.1, 300 epochs, cosine
+defaults:
+  - clap_matched
+model:
+  image_encoder:
+    lora:
+      enabled: false
+train:
+  optimizer: "sgd"
+  lr: 0.1
+  epochs: 300
+  scheduler: "cosine"
+  warmup_epochs: 0
+  weight_decay: 0.0

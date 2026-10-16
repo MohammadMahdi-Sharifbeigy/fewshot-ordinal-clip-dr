@@ -1,0 +1,6 @@
+# lambda_k from DeepDRiD training-split prevalence (population prior)
+defaults:
+  - d1_full
+model:
+  prompt_learner:
+    anchor_weighting: "inverse_sqrt_freq"
