@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from omegaconf import OmegaConf, DictConfig
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
@@ -59,6 +60,28 @@ def load_config(config_path: str, overrides: list[str] | None = None) -> DictCon
         cfg = OmegaConf.merge(cfg, OmegaConf.from_cli(overrides))
 
     return cfg
+
+
+def select_precision(train_cfg, bf16_supported: bool) -> str:
+    """Trainer precision: train.precision if set, else bf16-mixed when supported, else 32-true.
+
+    Same rule as the experiment notebook. fp16 ("16-mixed") is avoided: CLIP RN50's
+    visual tower overflows to NaN under fp16 autocast, so GradScaler skips every step.
+    """
+    if "precision" in train_cfg and train_cfg.precision:
+        return str(train_cfg.precision)
+    return "bf16-mixed" if bf16_supported else "32-true"
+
+
+def restore_best_weights(model, ckpt_path: str) -> None:
+    """Load the weights of our own best checkpoint into the already-built model.
+
+    torch >= 2.6 loads with weights_only=True by default, which rejects the
+    OmegaConf DictConfig that Lightning stores in hyper_parameters. The file is
+    written by this script, so a full load is safe.
+    """
+    state = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    model.load_state_dict(state["state_dict"])
 
 
 def json_safe(value):
@@ -137,7 +160,9 @@ def main() -> None:
         max_epochs=cfg.train.epochs,
         accelerator="auto",
         devices=1,
-        precision="16-mixed",
+        precision=select_precision(
+            cfg.train, bf16_supported=torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+        ),
         callbacks=callbacks,
         # Few-shot support sets are tiny; log every step so we don't miss anything
         log_every_n_steps=1,
@@ -158,7 +183,7 @@ def main() -> None:
         best_ckpt = callbacks[1].best_model_path
         if best_ckpt:
             print(f"\n[*] Loading best checkpoint: {best_ckpt}")
-            model = FewShotOrdinalRunner.load_from_checkpoint(best_ckpt, cfg=cfg)
+            restore_best_weights(model, best_ckpt)
 
     trainer.test(model, datamodule=datamodule)
 
