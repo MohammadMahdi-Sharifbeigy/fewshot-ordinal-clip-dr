@@ -8,7 +8,7 @@ from src.models.runner import clap_lambdas, population_grade_counts, resolve_los
 def test_resolve_loss_weights_backcompat():
     w = resolve_loss_weights(OmegaConf.create({"lambda_rank": 1.0, "mu_pairwise": 0.5, "tau": 1.0}))
     assert w == {"w_ce": 1.0, "w_clipdr": 1.0, "w_l2r": 0.5, "w_sms": 1.0,
-                 "w_ladder": 0.0, "w_path": 0.0, "w_anchor": 0.0}
+                 "w_ladder": 0.0, "w_path": 0.0, "w_anchor": 0.0, "w_kl": 0.0}
 
 
 def test_resolve_loss_weights_new_keys_win():

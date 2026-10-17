@@ -1,0 +1,34 @@
+# OrdinalCLIP official recipe (repos/OrdinalCLIP/configs/meta_cfgs/morph_compare.yaml,
+# "ordinalclip"): the matched baseline plus full image-encoder fine-tuning,
+# RAdam (weight decay 5e-4), cosine schedule over 100 epochs without warmup,
+# and OrdinalCLIP's preprocessing (square resize, crop, flip, ImageNet mean/std).
+defaults:
+  - ../default
+model:
+  image_encoder:
+    lora:
+      enabled: false
+    full_finetune: true
+  prompt_learner:
+    name: "ordinalclip_rank_prompt_learner"
+    num_base: 3
+    interpolation: "linear"
+    init_context: "diabetic retinopathy grading: the severity of the retinopathy is"
+    full_stop: true
+  sms:
+    enabled: false
+loss:
+  lambda_rank: 0.0
+  mu_pairwise: 0.0
+  w_kl: 1.0
+data:
+  manifest: "data/DeepDRiD/CFP_manifest.csv"
+  splits_dir: "data/DeepDRiD/splits"
+  augment: "ordinalclip"
+train:
+  optimizer: "radam"
+  lr: 1e-4
+  weight_decay: 5e-4
+  scheduler: "cosine"
+  warmup_epochs: 0
+  epochs: 100

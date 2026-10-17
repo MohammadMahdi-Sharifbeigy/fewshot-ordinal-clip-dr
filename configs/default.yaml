@@ -5,6 +5,8 @@ model:
     lora:
       enabled: true
       r: 16
+    # Train every image-encoder weight instead of LoRA (OrdinalCLIP / CLIP-DR recipe)
+    full_finetune: false
   text_encoder:
     name: "RN50"  # tied to clip_model, not loaded separately
   prompt_learner:
@@ -19,6 +21,12 @@ model:
     # RankFormer block: "paper" (L2RCLIP: LN -> MSA -> FFN, alpha blend) or "simple" (R + MSA(R))
     rankformer_block: "paper"
     rankformer_alpha: 0.5
+    # OrdinalCLIP options shared by both prompt learners
+    init_context: null        # sentence to initialise the context tokens (sets their number)
+    full_stop: false          # sentence "<ctx> <rank>." as in OrdinalCLIP
+    interpolation: "linear"   # OrdinalCLIP base-rank interpolation: linear | inv_prop | normal
+  # OrdinalCLIP and CLIP-DR keep CLIP's logit scale fixed (lr 0)
+  freeze_logit_scale: true
   sms:
     enabled: true
     # CLIP-DR / FDS settings (official code values)
@@ -39,9 +47,12 @@ data:
   # Full-data runs (k_shot = -1): stratified fraction of the train split held
   # out for validation / checkpoint selection (the test split is never used)
   full_val_fraction: 0.2
+  # "clip" (ours) or "ordinalclip" (OrdinalCLIP / CLIP-DR preprocessing)
+  augment: "clip"
 loss:
   lambda_rank: 1.0
   mu_pairwise: 1.0
+  w_kl: 0.0          # OrdinalCLIP's text-to-image KL loss
   tau: 1.0
 train:
   # 100 epochs is appropriate for few-shot: with ~5–160 support images,

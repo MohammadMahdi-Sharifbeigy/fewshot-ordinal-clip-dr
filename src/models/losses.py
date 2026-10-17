@@ -53,6 +53,32 @@ class RankingAwareLoss(nn.Module):
         return (right_loss + left_loss).mean()
 
 
+class OrdinalCLIPKLLoss(nn.Module):
+    """OrdinalCLIP's text-to-image KL loss (repos/OrdinalCLIP/ordinalclip/runner/runner.py).
+
+    Each rank prototype's similarities over the batch, softmax-normalised, are
+    pulled towards a near-uniform distribution over the images of that rank.
+    Ranks absent from the batch are ignored.
+    """
+
+    def __init__(self, num_ranks: int = 5):
+        super().__init__()
+        self.num_ranks = num_ranks
+        self.kl = nn.KLDivLoss(reduction="sum")
+
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            logits:  [B, K] logit-scaled similarities
+            targets: [B]    ground-truth ranks
+        """
+        y_t = F.one_hot(targets, self.num_ranks).t().float()  # [K, B]
+        present = y_t.sum(-1) > 0
+        target = (y_t * 10.0).softmax(-1)
+        target[~present] = 0
+        return self.kl(F.log_softmax(logits.t(), dim=-1), target) / present.sum()
+
+
 class CrossModalPairwiseLoss(nn.Module):
     """L2RCLIP Cross-Modal Pairwise CE Loss — fully vectorized.
 
