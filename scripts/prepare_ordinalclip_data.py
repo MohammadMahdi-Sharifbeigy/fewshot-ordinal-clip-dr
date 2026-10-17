@@ -1,22 +1,28 @@
-import os
-import pandas as pd
+"""Write OrdinalCLIP-format DeepDRiD lists (`<relative path> <grade>`) from the manifest.
+
+Paths are relative to <DeepDRiD root>/regular_fundus_images, the images_root
+used by notebooks/OrdinalCLIP_DeepDRiD_FewShot_Simulation.ipynb.
+"""
+import sys
 from pathlib import Path
 
-manifest_path = r'd:\Research\Dr.Mohammad(LAB)\ordinal classify\MMRDR\Workspace\data\DeepDRiD\CFP_manifest.csv'
-out_dir = Path(r'd:\Research\Dr.Mohammad(LAB)\ordinal classify\MMRDR\Workspace\data\DeepDRiD\ordinalclip_splits')
+import pandas as pd
+
+WORKSPACE = Path(__file__).resolve().parent.parent
+manifest_path = WORKSPACE / "data" / "DeepDRiD" / "CFP_manifest.csv"
+out_dir = WORKSPACE / "data" / "DeepDRiD" / "ordinalclip_splits"
 out_dir.mkdir(parents=True, exist_ok=True)
 
 df = pd.read_csv(manifest_path)
 
-images_root = r"F:\Datasets\DR\DeepDr\DeepDRiD-master\regular_fundus_images"
+PREFIX = "regular_fundus_images/"
 
 def to_relative(p):
-    # Ensure standard slashes
+    # Manifest paths are relative to the DeepDRiD root
     p = p.replace('\\', '/')
-    root = images_root.replace('\\', '/')
-    if p.lower().startswith(root.lower()):
-        return p[len(root):].lstrip('/')
-    return p
+    if not p.startswith(PREFIX):
+        sys.exit(f"Unexpected manifest path {p!r}; rebuild it with scripts/prepare_external_datasets.py")
+    return p[len(PREFIX):]
 
 train_df = df[df['split'] == 'train']
 val_df = df[df['split'] == 'test']  # The test split in DeepDRiD is used as validation in these simulations

@@ -1,11 +1,12 @@
 import os
-import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from .mmrdr_dataset import MMRDRDataset
+from .paths import resolve_image_root
+from .splitting import patient_holdout
 
 # Standard CLIP normalization constants
 try:
@@ -17,10 +18,16 @@ except ImportError:
 
 _CLIP_MEAN = (0.48145466, 0.4578275, 0.40821073)
 _CLIP_STD  = (0.26862954, 0.26130258, 0.27577711)
+_IMAGENET_MEAN = (0.485, 0.456, 0.406)
+_IMAGENET_STD  = (0.229, 0.224, 0.225)
 
 
-def get_transform(image_size: int = 224, is_train: bool = True) -> transforms.Compose:
-    """Return standard CLIP-style image transform.
+def get_transform(image_size: int = 224, is_train: bool = True, style: str = "clip") -> transforms.Compose:
+    """Return the image transform.
+
+    style="ordinalclip" reproduces OrdinalCLIP / CLIP-DR (runner/utils.get_transforms):
+    Resize to a (size+32)² square → RandomCrop / CenterCrop → flip (train) → ImageNet mean/std.
+    style="clip" (default) is our CLIP-style transform:
 
     Training: Resize to image_size+32 → RandomCrop → RandomHorizontalFlip → Normalize
     Eval:     Resize to image_size+32 → CenterCrop → Normalize
@@ -29,6 +36,12 @@ def get_transform(image_size: int = 224, is_train: bool = True) -> transforms.Co
     RandomCrop actually introduces positional jitter during training.
     """
     load_size = image_size + 32  # e.g. 256 for a 224 target
+    if style == "ordinalclip":
+        steps = [transforms.Resize((load_size, load_size))]
+        steps += [transforms.RandomCrop(image_size), transforms.RandomHorizontalFlip()] if is_train             else [transforms.CenterCrop(image_size)]
+        return transforms.Compose(steps + [transforms.ToTensor(), transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STD)])
+    if style != "clip":
+        raise ValueError(f"Unknown augmentation style: {style}")
     if is_train:
         return transforms.Compose([
             transforms.Resize(load_size, interpolation=BICUBIC),
@@ -73,6 +86,8 @@ class FewShotDataModule(pl.LightningDataModule):
         self.manifest = cfg.data.manifest
         self.splits_dir = cfg.data.splits_dir
         self.num_workers = cfg.data.get("num_workers", 4)
+        self.augment = cfg.data.get("augment", "clip")
+        self.image_root = resolve_image_root(self.manifest, cfg.data.get("image_root"))
 
         if self.k_shot <= 0:
             # Zero-shot (0) or Full-shot (-1): no support/query split files needed
@@ -90,15 +105,17 @@ class FewShotDataModule(pl.LightningDataModule):
             )
 
     def setup(self, stage=None) -> None:
-        train_transform = get_transform(self.image_size, is_train=True)
-        test_transform  = get_transform(self.image_size, is_train=False)
+        train_transform = get_transform(self.image_size, is_train=True, style=self.augment)
+        test_transform  = get_transform(self.image_size, is_train=False, style=self.augment)
 
         if self.k_shot > 0:
             self.support_dataset = MMRDRDataset(
-                self.manifest, split_file=self.support_file, transform=train_transform
+                self.manifest, split_file=self.support_file, transform=train_transform,
+                image_root=self.image_root,
             )
             self.query_dataset = MMRDRDataset(
-                self.manifest, split_file=self.query_file, transform=test_transform
+                self.manifest, split_file=self.query_file, transform=test_transform,
+                image_root=self.image_root,
             )
         elif self.k_shot == -1:
             # Full data: hold out a stratified part of the TRAIN split for
@@ -106,10 +123,12 @@ class FewShotDataModule(pl.LightningDataModule):
             # split must never be used for model selection.
             train_paths, val_paths = self._full_data_holdout()
             self.support_dataset = MMRDRDataset(
-                self.manifest, paths=train_paths, transform=train_transform
+                self.manifest, paths=train_paths, transform=train_transform,
+                image_root=self.image_root,
             )
             self.query_dataset = MMRDRDataset(
-                self.manifest, paths=val_paths, transform=test_transform
+                self.manifest, paths=val_paths, transform=test_transform,
+                image_root=self.image_root,
             )
         else:
             self.support_dataset = None
@@ -117,22 +136,15 @@ class FewShotDataModule(pl.LightningDataModule):
 
         # Official held-out test set (used in all settings, including zero-shot)
         self.test_dataset = MMRDRDataset(
-            self.manifest, split_type="test", transform=test_transform
+            self.manifest, split_type="test", transform=test_transform,
+                image_root=self.image_root,
         )
 
     def _full_data_holdout(self) -> tuple[list[str], list[str]]:
-        """Stratified, seeded train/val split of the official train split."""
+        """Seeded, patient-grouped train/val split of the official train split."""
         frac = float(self.cfg.data.get("full_val_fraction", 0.2))
         df = pd.read_csv(self.manifest)
-        df = df[df["split"] == "train"]
-        rng = np.random.default_rng(self.seed)
-        val_paths = []
-        for _, grade_df in df.groupby("grade"):
-            n_val = max(1, int(round(len(grade_df) * frac)))
-            val_paths.extend(rng.choice(grade_df["path"].to_numpy(), size=n_val, replace=False).tolist())
-        val_set = set(val_paths)
-        train_paths = [p for p in df["path"] if p not in val_set]
-        return train_paths, val_paths
+        return patient_holdout(df[df["split"] == "train"], frac, self.seed)
 
     def _make_loader(self, dataset, *, shuffle: bool, batch_size: int) -> DataLoader:
         """Helper to construct a DataLoader with consistent settings."""

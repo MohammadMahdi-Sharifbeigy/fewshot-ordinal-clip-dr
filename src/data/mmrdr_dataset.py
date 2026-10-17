@@ -6,16 +6,18 @@ import pandas as pd
 import json
 
 class MMRDRDataset(Dataset):
-    def __init__(self, manifest_csv, split_file=None, split_type=None, transform=None, paths=None):
+    def __init__(self, manifest_csv, split_file=None, split_type=None, transform=None, paths=None, image_root=None):
         """
         manifest_csv: path to the modality manifest.csv
         split_file: path to a text file containing paths (e.g. from build_splits.py), OR
         split_type: "train" or "test" to use the original dataset splits, OR
         paths: an explicit list of image paths to keep.
         transform: torchvision transforms
+        image_root: folder that relative manifest paths are joined to
         """
         super().__init__()
         self.transform = transform
+        self.image_root = image_root
         self.df = pd.read_csv(manifest_csv)
 
         if paths is not None:
@@ -26,22 +28,32 @@ class MMRDRDataset(Dataset):
             self.df = self.df[self.df['path'].isin(paths)].reset_index(drop=True)
         elif split_type is not None:
             self.df = self.df[self.df['split'] == split_type].reset_index(drop=True)
-            
+
+        # Fail early (instead of training on placeholder images) when the
+        # dataset root is wrong, e.g. after moving the workspace to another machine
+        missing = [p for p in self.df['path'] if not os.path.exists(self.resolve(p))]
+        if missing:
+            raise FileNotFoundError(
+                f"{len(missing)} of {len(self.df)} images not found, e.g. {self.resolve(missing[0])}. "
+                f"Set data.image_root (or DEFAULT_DEEPDRID in src/data/paths.py) to the dataset folder."
+            )
+
+    def resolve(self, path: str) -> str:
+        """Absolute path of a manifest entry."""
+        if self.image_root is not None and not os.path.isabs(path):
+            return os.path.join(str(self.image_root), path)
+        return path
+
     def __len__(self):
         return len(self.df)
-        
+
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
         img_path = row['path']
         grade = int(row['grade'])
-        
-        try:
-            image = Image.open(img_path).convert('RGB')
-        except Exception as e:
-            print(f"Error loading {img_path}: {e}")
-            # return a black image on failure to not crash
-            image = Image.new('RGB', (224, 224), (0, 0, 0))
-            
+
+        image = Image.open(self.resolve(img_path)).convert('RGB')
+
         if self.transform is not None:
             image = self.transform(image)
             

@@ -1,10 +1,14 @@
 import os
+import sys
 import argparse
 import pandas as pd
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.data.paths import DEFAULT_MMRDR  # noqa: E402
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mmrdr_root", type=str, required=True, help="Path to MMRDR root directory")
+    parser.add_argument("--mmrdr_root", type=str, default=str(DEFAULT_MMRDR), help="Path to MMRDR root directory")
     parser.add_argument("--modality", type=str, required=True, choices=["CFP", "OCT", "UWF", "ALL"], help="Modality to process")
     return parser.parse_args()
 
@@ -16,10 +20,10 @@ def process_modality(root, mod):
         
     df = pd.read_csv(csv_path)
     
-    # Construct absolute path
-    # Image paths in csv are like 'img/tr000001.jpg'
-    img_dir = os.path.join(root, f"MMRDR-{mod}")
-    df['path'] = df['image'].apply(lambda x: os.path.join(img_dir, x).replace('\\', '/'))
+    # Paths relative to the MMRDR root (portable across machines), e.g.
+    # 'MMRDR-CFP/img/tr000001.jpg'; csv image paths are like 'img/tr000001.jpg'
+    df['path'] = df['image'].apply(lambda x: f"MMRDR-{mod}/{x}".replace('\\', '/'))
+    missing = sum(not os.path.exists(os.path.join(root, p)) for p in df['path'])
     
     # Determine split: train or test
     df['split'] = df['image'].apply(lambda x: "train" if "img/tr" in x else "test")
@@ -42,6 +46,7 @@ def process_modality(root, mod):
     print(f"Saved manifest for {mod} with {len(manifest)} rows to {out_csv}")
     print("Train count:", sum(manifest['split'] == 'train'))
     print("Test count:", sum(manifest['split'] == 'test'))
+    print("Missing files:", missing)
     print()
 
 def main():

@@ -13,8 +13,8 @@ APTOS (F:/Datasets/DR/APTOS):
 
 DeepDRiD (F:/Datasets/DR/DeepDRiD/DeepDRiD-master):
   regular_fundus_images/Images/<patient_id>/<image_id>.jpg   (both splits)
-  regular-fundus-training.csv   – columns: image_id, patient_id, patient_DR_Level, ...
-  regular-fundus-validation.csv – columns: image_id, patient_id, patient_DR_Level, ...
+  regular-fundus-training.csv   – columns: image_id, patient_id, left/right_eye_DR_Level, ...
+  regular-fundus-validation.csv – columns: image_id, patient_id, left/right_eye_DR_Level, ...
 
 Output
 ──────
@@ -22,12 +22,13 @@ data/APTOS/CFP_manifest.csv
 data/DeepDRiD/CFP_manifest.csv
 
 Both files have columns:  path, modality, grade, lesion, lr, split
-  path     – absolute path to the image file
+  path     – path relative to the dataset root (see src/data/paths.py)
   modality – "CFP"
-  grade    – DR grade (0-4)
+  grade    – DR grade (0-4); DeepDRiD: grade of the imaged eye
   lesion   – "" (not available in these datasets)
-  lr       – 0 (not available)
+  lr       – DeepDRiD: 0 = left eye, 1 = right eye; APTOS: 0 (not available)
   split    – "train" or "test"
+DeepDRiD also has: patient (id) and patient_grade (worse eye, for reference)
 
 Run from the Workspace directory:
   python scripts/prepare_external_datasets.py
@@ -44,14 +45,22 @@ import pandas as pd
 
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
-DEFAULT_APTOS    = Path("F:/Datasets/DR/APTOS")
-DEFAULT_DEEPDRID = Path("F:/Datasets/DR/DeepDr/DeepDRiD-master")
+# Dataset roots live in src/data/paths.py (Linux path first, then Windows), so
+# the loaders resolve the relative manifest paths against the same folder.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from src.data.paths import DEFAULT_APTOS, DEFAULT_DEEPDRID  # noqa: E402
 
 
 def build_aptos_manifest(aptos_root: Path, out_dir: Path) -> Path:
     """Convert raw APTOS CSV files -> CFP_manifest.csv"""
     aptos_root = Path(aptos_root)
-    img_dir = aptos_root / "train_images" / "train_images"
+    # Each CSV has its own image folder; paths are stored relative to aptos_root
+    img_dirs = {
+        "train_1.csv": "train_images/train_images",
+        "valid.csv":   "val_images/val_images",
+        "val.csv":     "val_images/val_images",
+        "test.csv":    "test_images/test_images",
+    }
 
     rows = []
 
@@ -60,9 +69,8 @@ def build_aptos_manifest(aptos_root: Path, out_dir: Path) -> Path:
     if train_csv.exists():
         df = pd.read_csv(train_csv)
         for _, row in df.iterrows():
-            img_path = img_dir / f"{row['id_code']}.png"
             rows.append({
-                "path":     str(img_path),
+                "path":     f"{img_dirs['train_1.csv']}/{row['id_code']}.png",
                 "modality": "CFP",
                 "grade":    int(row["diagnosis"]),
                 "lesion":   "",
@@ -79,9 +87,8 @@ def build_aptos_manifest(aptos_root: Path, out_dir: Path) -> Path:
         if val_csv.exists():
             df = pd.read_csv(val_csv)
             for _, row in df.iterrows():
-                img_path = img_dir / f"{row['id_code']}.png"
                 rows.append({
-                    "path":     str(img_path),
+                    "path":     f"{img_dirs[val_name]}/{row['id_code']}.png",
                     "modality": "CFP",
                     "grade":    int(row["diagnosis"]),
                     "lesion":   "",
@@ -103,7 +110,7 @@ def build_aptos_manifest(aptos_root: Path, out_dir: Path) -> Path:
     print(f"  Rows: {len(manifest):,}")
     if not manifest.empty:
         print(f"  Grade distribution:\n{manifest['grade'].value_counts().sort_index()}")
-        missing = manifest[~manifest['path'].apply(lambda p: Path(p).exists())]
+        missing = manifest[~manifest['path'].apply(lambda p: (aptos_root / p).exists())]
         print(f"  Missing files: {len(missing):,} / {len(manifest):,}")
 
     return out_path
@@ -141,21 +148,30 @@ def build_deepdrid_manifest(deepdrid_root: Path, out_dir: Path) -> Path:
             continue
 
         df = pd.read_csv(csv_path)
+        # Every row grades exactly one eye. A few training rows put the grade in
+        # the other eye's column (e.g. 56_r3 has only left_eye_DR_Level), so take
+        # whichever column is filled rather than trusting the l/r in the image id.
+        left, right = df["left_eye_DR_Level"], df["right_eye_DR_Level"]
+        if not (left.notna() ^ right.notna()).all():
+            raise ValueError(f"{csv_path}: expected exactly one eye grade per row")
+        eye_grade = left.fillna(right).astype(int)
         count = 0
-        for _, row in df.iterrows():
+        for (_, row), grade in zip(df.iterrows(), eye_grade):
             patient_id = str(int(row["patient_id"]))
             image_id   = str(row["image_id"])
-            grade      = int(row["patient_DR_Level"])
 
-            # Images/<patient_id>/<image_id>.jpg
+            # Images/<patient_id>/<image_id>.jpg, stored relative to the
+            # DeepDRiD root (forward slashes) so the manifest is portable
             img_path = img_base / patient_id / f"{image_id}.jpg"
             rows.append({
-                "path":     str(img_path),
-                "modality": "CFP",
-                "grade":    grade,
-                "lesion":   "",
-                "lr":       0,
-                "split":    split_label,
+                "path":          img_path.relative_to(deepdrid_root).as_posix(),
+                "modality":      "CFP",
+                "grade":         int(grade),
+                "lesion":        "",
+                "lr":            0 if "_l" in image_id else 1,
+                "split":         split_label,
+                "patient":       patient_id,
+                "patient_grade": int(row["patient_DR_Level"]),
             })
             count += 1
         print(f"  [DeepDRiD] {csv_name} -> {count:,} rows ({split_label} split)")
@@ -169,7 +185,7 @@ def build_deepdrid_manifest(deepdrid_root: Path, out_dir: Path) -> Path:
     print(f"  Rows: {len(manifest):,}")
     if not manifest.empty:
         print(f"  Grade distribution:\n{manifest['grade'].value_counts().sort_index()}")
-        missing = manifest[~manifest['path'].apply(lambda p: Path(p).exists())]
+        missing = manifest[~manifest['path'].apply(lambda p: (deepdrid_root / p).exists())]
         print(f"  Missing files: {len(missing):,} / {len(manifest):,}")
 
     return out_path
