@@ -1,15 +1,15 @@
 import torch
 import torch.nn as nn
 
-from .ordinalclip_head import interpolation_weights
+from .ordinalclip_head import context_embeddings, interpolation_weights, prompt_template
 
 
 class RankFormerPromptLearner(nn.Module):
     """Learnable prompts [SOS][CTX x n][RANK][EOS] with a RankFormer on the rank tokens.
 
     rank_param:
-        "interpolated" — rank tokens are linear interpolations of `num_base`
-                         learnable base embeddings (OrdinalCLIP). This is the
+        "interpolated" — rank tokens interpolate `num_base` learnable base
+                         embeddings with OrdinalCLIP's weighting. This is the
                          same parametrisation as OrdinalCLIPHead, so removing
                          the RankFormer ablates the attention block only.
         "free"         — one independent learnable token per rank.
@@ -33,10 +33,12 @@ class RankFormerPromptLearner(nn.Module):
         num_base=3,
         block="paper",
         alpha=0.5,
+        init_context=None,
+        full_stop=False,
+        interpolation="linear",
     ):
         super().__init__()
         self.num_ranks = num_ranks
-        self.num_context_tokens = num_context_tokens
         self.rank_param = rank_param
         self.block = block
         self.alpha = alpha
@@ -47,10 +49,10 @@ class RankFormerPromptLearner(nn.Module):
 
         ctx_dim = clip_model.ln_final.weight.shape[0]
 
-        # Global context tokens
+        # Global context tokens: random or initialised from a sentence
         # [num_context_tokens, ctx_dim]
-        ctx_vectors = torch.empty(num_context_tokens, ctx_dim, dtype=dtype)
-        nn.init.normal_(ctx_vectors, std=0.02)
+        ctx_vectors, num_context_tokens = context_embeddings(clip_model, num_context_tokens, init_context, dtype)
+        self.num_context_tokens = num_context_tokens
         self.ctx = nn.Parameter(ctx_vectors)
 
         # Rank tokens
@@ -58,7 +60,7 @@ class RankFormerPromptLearner(nn.Module):
             base_vectors = torch.empty(num_base, ctx_dim, dtype=dtype)
             nn.init.normal_(base_vectors, std=0.02)
             self.base_embeddings = nn.Parameter(base_vectors)
-            self.register_buffer("interp_weights", interpolation_weights(num_ranks, num_base, dtype))
+            self.register_buffer("interp_weights", interpolation_weights(num_ranks, num_base, dtype, interpolation))
         elif rank_param == "free":
             # [num_ranks, ctx_dim]
             rank_vectors = torch.empty(num_ranks, ctx_dim, dtype=dtype)
@@ -81,20 +83,10 @@ class RankFormerPromptLearner(nn.Module):
         elif block != "simple":
             raise ValueError(f"Unknown RankFormer block: {block}")
 
-        import clip
-        # Create a dummy prompt of exactly length: num_context_tokens + 1 (for rank)
-        dummy_prompt = " ".join(["X"] * (num_context_tokens + 1))
-        prompts = [dummy_prompt for _ in range(num_ranks)]
-
-        tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts])
+        tokenized_prompts, prefix, suffix = prompt_template(clip_model, num_ranks, num_context_tokens, full_stop, dtype)
         self.register_buffer("tokenized_prompts", tokenized_prompts)
-
-        device = clip_model.token_embedding.weight.device
-
-        with torch.no_grad():
-            embedding = clip_model.token_embedding(tokenized_prompts.to(device)).type(dtype)
-        self.register_buffer("token_prefix", embedding[:, :1, :])  # SOS
-        self.register_buffer("token_suffix", embedding[:, 1 + num_context_tokens + 1:, :])  # EOS and padding
+        self.register_buffer("token_prefix", prefix)  # SOS
+        self.register_buffer("token_suffix", suffix)  # (.) EOS and padding
 
     def rank_tokens(self) -> torch.Tensor:
         """Rank tokens before the RankFormer, [num_ranks, ctx_dim]."""

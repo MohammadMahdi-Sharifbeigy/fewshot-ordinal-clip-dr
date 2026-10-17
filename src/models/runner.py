@@ -8,7 +8,7 @@ from sklearn.metrics import cohen_kappa_score, mean_absolute_error, f1_score, ro
 from .clip_backbone import load_clip_model, TextEncoder
 from .prompt_learner.rankformer import RankFormerPromptLearner
 from .prompt_learner.ordinalclip_head import OrdinalCLIPHead
-from .losses import RankingAwareLoss, CrossModalPairwiseLoss
+from .losses import RankingAwareLoss, CrossModalPairwiseLoss, OrdinalCLIPKLLoss
 from .sms import SMS
 from .lora_adapter import attach_lora, set_trainable
 
@@ -42,6 +42,12 @@ class FewShotOrdinalRunner(pl.LightningModule):
         # 3. Prompt Learner
         learner_name = cfg.model.prompt_learner.name
         pl_cfg = cfg.model.prompt_learner
+        # Shared prompt options (OrdinalCLIP: text-initialised context, "<ctx> <rank>." sentence)
+        prompt_kwargs = dict(
+            init_context=pl_cfg.get("init_context", None),
+            full_stop=pl_cfg.get("full_stop", False),
+            interpolation=pl_cfg.get("interpolation", "linear"),
+        )
         if learner_name == "rankformer_prompt_learner":
             self.prompt_learner = RankFormerPromptLearner(
                 self.clip_model,
@@ -52,6 +58,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
                 num_base=pl_cfg.get("num_base", 3),
                 block=pl_cfg.get("rankformer_block", "paper"),
                 alpha=pl_cfg.get("rankformer_alpha", 0.5),
+                **prompt_kwargs,
             )
         elif learner_name == "ordinalclip_rank_prompt_learner":
             self.prompt_learner = OrdinalCLIPHead(
@@ -59,6 +66,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
                 num_ranks=self.num_ranks,
                 num_context_tokens=pl_cfg.num_tokens_for_context,
                 num_base=pl_cfg.get("num_base", 3),
+                **prompt_kwargs,
             )
         else:
             raise ValueError(f"Unknown prompt learner: {learner_name}")
@@ -80,9 +88,11 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.criterion_main = nn.CrossEntropyLoss()
         self.criterion_rank = RankingAwareLoss(num_ranks=self.num_ranks, tau=cfg.loss.tau)
         self.criterion_pairwise = CrossModalPairwiseLoss(num_ranks=self.num_ranks, tau=cfg.loss.tau)
+        self.criterion_kl = OrdinalCLIPKLLoss(num_ranks=self.num_ranks)
 
         self.lambda_rank = cfg.loss.lambda_rank
         self.mu_pairwise = cfg.loss.mu_pairwise
+        self.w_kl = cfg.loss.get("w_kl", 0.0)
 
         # 6. Freeze / unfreeze
         set_trainable(
@@ -93,6 +103,8 @@ class FewShotOrdinalRunner(pl.LightningModule):
             train_prompts=True,
             train_lora=cfg.model.image_encoder.lora.enabled,
             train_sms=cfg.model.sms.enabled,
+            full_finetune=cfg.model.image_encoder.get("full_finetune", False),
+            train_logit_scale=not cfg.model.get("freeze_logit_scale", True),
         )
 
         # Metric accumulators — cleared after every eval epoch
@@ -156,7 +168,10 @@ class FewShotOrdinalRunner(pl.LightningModule):
             else sim.new_tensor(0.0)
         )
 
-        loss = loss_main + self.lambda_rank * loss_rank + self.mu_pairwise * loss_pairwise
+        loss_kl = self.criterion_kl(sim, target) if self.w_kl > 0 else sim.new_tensor(0.0)
+
+        loss = (loss_main + self.lambda_rank * loss_rank + self.mu_pairwise * loss_pairwise
+                + self.w_kl * loss_kl)
         self.log("train_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         return loss
 
@@ -262,6 +277,8 @@ class FewShotOrdinalRunner(pl.LightningModule):
             optimizer = torch.optim.Adam(trainable_params, lr=lr, weight_decay=wd)
         elif optimizer_name == "adamw":
             optimizer = torch.optim.AdamW(trainable_params, lr=lr, weight_decay=wd)
+        elif optimizer_name == "radam":
+            optimizer = torch.optim.RAdam(trainable_params, lr=lr, weight_decay=wd)
         else:
             optimizer = torch.optim.SGD(trainable_params, lr=lr, weight_decay=wd, momentum=0.9)
 

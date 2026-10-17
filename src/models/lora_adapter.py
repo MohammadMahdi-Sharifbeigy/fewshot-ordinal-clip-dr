@@ -19,18 +19,28 @@ def attach_lora(model, r=16, target_modules=("v_proj", "q_proj"), lora_alpha=16,
     model.visual = get_peft_model(model.visual, config)
     return model
 
-def set_trainable(model, text_encoder, prompt_learner, sms=None, train_prompts=True, train_lora=True, train_sms=True):
+def set_trainable(model, text_encoder, prompt_learner, sms=None, train_prompts=True, train_lora=True, train_sms=True,
+                  full_finetune=False, train_logit_scale=False):
     """
-    Freezes CLIP backbone, unfreezes specified components.
+    Freezes the whole CLIP model, then unfreezes the specified components.
+
+    full_finetune: train every image-encoder weight (OrdinalCLIP / CLIP-DR recipe)
+    train_logit_scale: OrdinalCLIP and CLIP-DR keep it frozen (lr 0)
     """
-    # Freeze all in text_encoder and model.visual
-    for name, param in text_encoder.named_parameters():
+    # Freeze all of CLIP (text encoder, image encoder, token embedding, logit scale)
+    for name, param in model.named_parameters():
         param.requires_grad = False
-        
-    if not train_lora:
+
+    if full_finetune:
         for name, param in model.visual.named_parameters():
-            param.requires_grad = False
-            
+            param.requires_grad = True
+    elif train_lora:
+        for name, param in model.visual.named_parameters():
+            if "lora_" in name:
+                param.requires_grad = True
+
+    model.logit_scale.requires_grad = train_logit_scale
+
     # Unfreeze prompt learner
     if train_prompts:
         for name, param in prompt_learner.named_parameters():
