@@ -10,6 +10,7 @@ from .prompt_learner.rankformer import RankFormerPromptLearner
 from .prompt_learner.ordinalclip_head import OrdinalCLIPHead
 from .prompt_learner.ordinal_geometry import OrdinalGeometryEmbeddings, build_init_embeddings
 from .prompt_learner.text_lora_prototypes import TextLoRAPrototypes
+from .prompt_learner.vmf_grades import VMFGradeDistributions, ensemble_init_means
 from .text_lora import attach_text_lora, text_lora_parameters
 from .text_losses import description_order_loss
 from .losses import RankingAwareLoss, CrossModalPairwiseLoss, OrdinalCLIPKLLoss
@@ -38,6 +39,7 @@ def resolve_loss_weights(loss_cfg) -> dict[str, float]:
         "w_anchor": get("w_anchor"),
         "w_kl": get("w_kl"),
         "w_desc": get("w_desc"),
+        "w_kappa": get("w_kappa"),
     }
 
 
@@ -93,6 +95,11 @@ class FewShotOrdinalRunner(pl.LightningModule):
                 num_ranks=self.num_ranks,
                 seed=cfg.data.seed,
             )
+        elif pl_cfg.name == "vmf_grade_distributions":
+            # Direction 3: vMF means start from the zero-shot description ensemble
+            init_embeddings = ensemble_init_means(
+                self.clip_model, pl_cfg.get("prompt_set", "icdr_ensemble"), self.num_ranks
+            )
 
         # 2. Attach LoRA to visual encoder
         if cfg.model.image_encoder.lora.enabled:
@@ -118,6 +125,14 @@ class FewShotOrdinalRunner(pl.LightningModule):
         )
         if learner_name == "ordinal_geometry_embeddings":
             self.prompt_learner = OrdinalGeometryEmbeddings(init_embeddings)
+        elif learner_name == "vmf_grade_distributions":
+            vmf_cfg = pl_cfg.get("vmf", {})
+            self.prompt_learner = VMFGradeDistributions(
+                init_embeddings,
+                kappa_init=float(vmf_cfg.get("kappa_init", 100.0)),
+                kappa_mode=vmf_cfg.get("kappa_mode", "per_grade"),
+                scoring=vmf_cfg.get("scoring", "likelihood"),
+            )
         elif learner_name == "text_lora_prototypes":
             # Direction 2: description ensemble through a LoRA-adapted text encoder
             tl_cfg = pl_cfg.get("text_lora", {})
@@ -225,6 +240,12 @@ class FewShotOrdinalRunner(pl.LightningModule):
 
         return image_features, text_features
 
+    def scores(self, image_features, text_features, logit_scale):
+        """Image-grade logits [B, K]: the prompt module's own scoring (Direction 3) or CLIP's."""
+        if hasattr(self.prompt_learner, "score"):
+            return self.prompt_learner.score(image_features, logit_scale)
+        return logit_scale * image_features @ text_features.T
+
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
@@ -275,7 +296,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
         image_features, text_features = self(image)
 
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0) # Prevent FP16 NaN explosion
-        sim = logit_scale * image_features @ text_features.T  # [B, K]
+        sim = self.scores(image_features, text_features, logit_scale)  # [B, K]
 
         # Cast to float32 before all loss computations.
         # AMP may keep sim in BF16/FP16; logsigmoid/cross-entropy on large
@@ -316,6 +337,10 @@ class FewShotOrdinalRunner(pl.LightningModule):
             terms["ladder"] = ladder_loss(t_hat, self.ladder_margin)
             terms["smooth"], terms["align"] = l_smooth, l_align
             terms["anchor"] = anchor_loss(t_hat, self.prompt_learner.anchors, self.prompt_learner.anchor_lambdas)
+            if w["w_kappa"] != 0 and hasattr(self.prompt_learner, "kappa_prior"):
+                # Direction 3: keep the grade concentrations near their start
+                terms["kappa"] = self.prompt_learner.kappa_prior()
+                loss = loss + w["w_kappa"] * terms["kappa"]
             if w["w_desc"] != 0 and getattr(self.prompt_learner, "last_desc", None) is not None:
                 # Direction 2: keep every grade's description cloud separated and ordered
                 terms["desc"] = description_order_loss(
@@ -363,7 +388,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
         image_features, text_features = self(image)
 
         logit_scale = self.clip_model.logit_scale.exp().clamp(max=100.0) # Prevent FP16 NaN explosion
-        sim = logit_scale * image_features @ text_features.T
+        sim = self.scores(image_features, text_features, logit_scale)
 
         # SMS needs ground-truth grades, so it only acts during training
         probs = F.softmax(sim, dim=-1)
@@ -420,9 +445,17 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.log(f"{prefix}_odc_offdiag", shape["odc_offdiag"])
         self.log(f"{prefix}_ece", shape["ece"])
 
+        # Proper scoring rules for the predicted grade distribution
+        p_true = probs[np.arange(len(targets)), targets]
+        nll = float(-np.log(np.clip(p_true, 1e-12, None)).mean())
+        brier = float(((probs - np.eye(K)[targets]) ** 2).sum(axis=1).mean())
+        self.log(f"{prefix}_nll", nll)
+        self.log(f"{prefix}_brier", brier)
+
         self.latest_metrics = {
             "qwk": qwk, "mae": mae, "f1": macro_f1,
             "auc": auc, "acc": acc, "los": los,
+            "nll": nll, "brier": brier,
             **shape,
         }
 
@@ -443,12 +476,18 @@ class FewShotOrdinalRunner(pl.LightningModule):
         if self.direct and hasattr(self.prompt_learner, "t"):
             # Grade embeddings: own lr, no weight decay (decay on a sphere-projected
             # parameter only shrinks its norm and changes the effective step size)
-            text_param = self.prompt_learner.t
-            others = [p for p in self.parameters() if p.requires_grad and p is not text_param]
+            no_decay = (self.prompt_learner.no_decay_parameters()
+                        if hasattr(self.prompt_learner, "no_decay_parameters") else [self.prompt_learner.t])
+            kappa = self.prompt_learner.kappa_parameters() if hasattr(self.prompt_learner, "kappa_parameters") else []
+            special_ids = {id(p) for p in no_decay + kappa}
+            others = [p for p in self.parameters() if p.requires_grad and id(p) not in special_ids]
             params = [
                 {"params": others},
-                {"params": [text_param], "lr": self.cfg.train.get("text_lr", lr), "weight_decay": 0.0},
+                {"params": no_decay, "lr": self.cfg.train.get("text_lr", lr), "weight_decay": 0.0},
             ]
+            if kappa:
+                # Direction 3: concentrations live on a log scale and need a larger step
+                params.append({"params": kappa, "lr": self.cfg.train.get("kappa_lr", 1e-2), "weight_decay": 0.0})
         elif text_lora:
             # Direction 2: text-LoRA weights get their own learning rate (train.text_lr)
             lora_ids = {id(p) for p in text_lora}

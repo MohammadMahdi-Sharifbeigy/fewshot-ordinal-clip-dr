@@ -1,0 +1,8 @@
+# Adds CLIP-DR SMS on top of the distributional scoring
+defaults:
+  - d3_full
+model:
+  sms:
+    enabled: true
+loss:
+  w_sms: 1

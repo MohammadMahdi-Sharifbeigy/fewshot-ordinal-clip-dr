@@ -1,0 +1,5 @@
+# Without the ladder on the means
+defaults:
+  - d3_full
+loss:
+  w_ladder: 0.0

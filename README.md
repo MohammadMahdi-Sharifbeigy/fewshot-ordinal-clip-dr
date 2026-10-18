@@ -311,6 +311,23 @@ Notebook: [`notebooks/DeepDRiD_Direction2.ipynb`](notebooks/DeepDRiD_Direction2.
 
 ---
 
+## Direction 3: probabilistic grade embeddings (branch `direction3-probabilistic-ordinal`)
+
+Each grade is a **von Mises–Fisher distribution** on CLIP's unit sphere instead of a single vector (`src/models/prompt_learner/vmf_grades.py`).
+
+**How it works**
+- Grade $`k`$ has a mean direction $`\mu_k`$ (started from the zero-shot ICDR description ensemble) and a learned concentration $`\kappa_k`$ (how sharply the grade is defined).
+- An image is classified by the vMF-mixture posterior, $`\text{logit}_k = \kappa_k \mu_k^\top z + \log C_D(\kappa_k)`$. With equal $`\kappa`$ this is CLIP's softmax; a broad grade spreads probability onto its neighbours, so ordinal smoothing is part of the model rather than a post-hoc SMS step.
+- The vMF normaliser needs $`\log I_\nu(\kappa)`$ at $`\nu = 511`$; `src/models/vmf.py` uses the uniform asymptotic expansion (matches mpmath to about $`10^{-11}`$).
+- Losses: CE + CLIP-DR ranking + L2RCLIP pairwise, the Direction 1 ladder and anchor on the means, and a log-normal prior on $`\kappa`$. SMS is off by default.
+- Every run also reports **NLL** and the **Brier score** next to ECE.
+
+**Configs** (`configs/direction3/`): `d3_full` and the ablations `d3_shared_kappa`, `d3_fixed_kappa`, `d3_expected_sim`, `d3_with_sms`, `d3_no_ladder`, `d3_no_anchor`, `d3_no_kappa_prior`, `d3_single_prompt`, `d3_kappa50`.
+
+Notebook: [`notebooks/DeepDRiD_Direction3.ipynb`](notebooks/DeepDRiD_Direction3.ipynb). Design: `docs/superpowers/specs/2026-10-19-direction3-probabilistic-ordinal-design.md`.
+
+---
+
 ## Work in progress: MSO-CLIP (multi-modal)
 
 `src/models/mso_clip_runner.py` extends the framework to the **MMRDR** dataset, which provides three modalities per patient: CFP, OCT and UWF. Each modality gets its own LoRA adapter on a shared frozen backbone. Two RankFormers produce prototypes for the two grading scales (5 grades for CFP/UWF, 3 grades for OCT). A cross-modal Transformer fuses the three visual tokens into one patient-level vector and uses a learned `[MISSING]` embedding for absent modalities. Training combines the unimodal losses with a patient-level ordinal loss.

@@ -1,0 +1,6 @@
+# Means from one clinical sentence per grade instead of the description ensemble
+defaults:
+  - d3_full
+model:
+  prompt_learner:
+    prompt_set: "icdr_clinical"

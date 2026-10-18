@@ -22,6 +22,7 @@ results/
 results_v2/
 results_d1/
 results_d2/
+results_d3/
 *.csv
 *.log
 *.zip

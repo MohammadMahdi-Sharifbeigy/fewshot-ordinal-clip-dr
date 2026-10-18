@@ -1,0 +1,7 @@
+# Concentrations fixed at kappa0: deterministic prototypes with the same initialisation
+defaults:
+  - d3_full
+model:
+  prompt_learner:
+    vmf:
+      kappa_mode: "fixed"

@@ -1,0 +1,7 @@
+# Broader starting distributions (kappa0 = 50)
+defaults:
+  - d3_full
+model:
+  prompt_learner:
+    vmf:
+      kappa_init: 50.0

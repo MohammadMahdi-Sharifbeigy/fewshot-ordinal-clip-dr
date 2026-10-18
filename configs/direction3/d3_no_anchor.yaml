@@ -1,0 +1,5 @@
+# Without the anchor to the zero-shot means
+defaults:
+  - d3_full
+loss:
+  w_anchor: 0.0

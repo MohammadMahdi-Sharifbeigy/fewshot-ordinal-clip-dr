@@ -1,0 +1,7 @@
+# One concentration for all grades (a learned temperature): is per-grade uncertainty needed?
+defaults:
+  - d3_full
+model:
+  prompt_learner:
+    vmf:
+      kappa_mode: "shared"

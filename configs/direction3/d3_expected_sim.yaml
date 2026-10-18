@@ -1,0 +1,7 @@
+# Expected-similarity scoring instead of the vMF-mixture likelihood
+defaults:
+  - d3_full
+model:
+  prompt_learner:
+    vmf:
+      scoring: "expected"

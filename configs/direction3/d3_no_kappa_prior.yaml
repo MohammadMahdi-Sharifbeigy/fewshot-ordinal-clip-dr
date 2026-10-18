@@ -1,0 +1,5 @@
+# Concentrations free (no log-normal prior)
+defaults:
+  - d3_full
+loss:
+  w_kappa: 0.0
