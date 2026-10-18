@@ -1,0 +1,28 @@
+# CLIP-LoRA (Zanella & Ben Ayed, CVPRW 2024), matched: LoRA on both encoders
+# (text: q/k/v, r = 2, alpha = 1, dropout 0.25; image: our RN50 LoRA), template
+# prompt "a photo of a {grade}.", cross-entropy only.
+defaults:
+  - ../deepdrid_cfp
+model:
+  image_encoder:
+    lora:
+      enabled: true
+  prompt_learner:
+    name: "text_lora_prototypes"
+    prompt_set: "clip_template"
+    text_lora:
+      enabled: true
+      r: 2
+      alpha: 1.0
+      dropout: 0.25
+      targets: ["q", "k", "v"]
+  sms:
+    enabled: false
+loss:
+  w_ce: 1.0
+  w_clipdr: 0.0
+  w_l2r: 0.0
+  w_ladder: 0.0
+  w_desc: 0.0
+  w_anchor: 0.0
+  w_path: 0.0

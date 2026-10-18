@@ -1,0 +1,6 @@
+# Short plain grade sentences instead of the clinical description ensemble
+defaults:
+  - d2_full
+model:
+  prompt_learner:
+    prompt_set: "plain"

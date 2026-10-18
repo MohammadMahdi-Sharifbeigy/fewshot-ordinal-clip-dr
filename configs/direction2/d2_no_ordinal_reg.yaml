@@ -1,0 +1,7 @@
+# Text-LoRA with the image-side ordinal losses only (no ladder / description / anchor terms)
+defaults:
+  - d2_full
+loss:
+  w_ladder: 0.0
+  w_desc: 0.0
+  w_anchor: 0.0

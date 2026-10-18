@@ -1,0 +1,8 @@
+# Larger text-LoRA rank
+defaults:
+  - d2_full
+model:
+  prompt_learner:
+    text_lora:
+      r: 8
+      alpha: 4.0

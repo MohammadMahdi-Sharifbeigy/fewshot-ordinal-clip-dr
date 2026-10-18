@@ -1,0 +1,4 @@
+defaults:
+  - d2_full
+loss:
+  w_anchor: 0.0

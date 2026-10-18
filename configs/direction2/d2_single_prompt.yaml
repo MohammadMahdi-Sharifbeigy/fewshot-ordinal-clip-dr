@@ -1,0 +1,6 @@
+# One clinical sentence per grade instead of the description ensemble
+defaults:
+  - d2_full
+model:
+  prompt_learner:
+    prompt_set: "icdr_clinical"

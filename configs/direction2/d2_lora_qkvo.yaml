@@ -1,0 +1,7 @@
+# Text-LoRA also on the attention output projection
+defaults:
+  - d2_full
+model:
+  prompt_learner:
+    text_lora:
+      targets: ["q", "k", "v", "o"]

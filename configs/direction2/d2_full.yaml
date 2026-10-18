@@ -1,0 +1,29 @@
+# Direction 2 (main method): ICDR description ensemble through a LoRA-adapted CLIP
+# text encoder, CE + CLIP-DR ranking + L2RCLIP pairwise + SMS, plus ordinal
+# regularisers on the encoder's outputs (ladder on the grade prototypes,
+# description ordering, anchor to the zero-shot prototypes).
+defaults:
+  - ../deepdrid_cfp
+model:
+  prompt_learner:
+    name: "text_lora_prototypes"
+    prompt_set: "icdr_ensemble"       # icdr_ensemble | icdr_clinical | plain | clip_template
+    text_lora:
+      enabled: true
+      r: 2                            # CLIP-LoRA defaults
+      alpha: 1.0
+      dropout: 0.25
+      targets: ["q", "k", "v"]
+    anchor_weighting: "uniform"
+    ladder_margin: 0.05
+  sms:
+    enabled: true
+loss:
+  w_ce: 1.0
+  w_clipdr: 1.0
+  w_l2r: 1.0
+  w_sms: 1
+  w_ladder: 1.0
+  w_desc: 1.0
+  w_anchor: 1.0
+  w_path: 0.0

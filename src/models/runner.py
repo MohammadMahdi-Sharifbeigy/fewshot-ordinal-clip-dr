@@ -9,6 +9,9 @@ from .clip_backbone import load_clip_model, TextEncoder
 from .prompt_learner.rankformer import RankFormerPromptLearner
 from .prompt_learner.ordinalclip_head import OrdinalCLIPHead
 from .prompt_learner.ordinal_geometry import OrdinalGeometryEmbeddings, build_init_embeddings
+from .prompt_learner.text_lora_prototypes import TextLoRAPrototypes
+from .text_lora import attach_text_lora, text_lora_parameters
+from .text_losses import description_order_loss
 from .losses import RankingAwareLoss, CrossModalPairwiseLoss, OrdinalCLIPKLLoss
 from .geometry_losses import anchor_loss, inverse_sqrt_freq_lambdas, ladder_loss, path_losses
 from .sms import SMS
@@ -34,6 +37,7 @@ def resolve_loss_weights(loss_cfg) -> dict[str, float]:
         "w_path": get("w_path"),
         "w_anchor": get("w_anchor"),
         "w_kl": get("w_kl"),
+        "w_desc": get("w_desc"),
     }
 
 
@@ -114,6 +118,22 @@ class FewShotOrdinalRunner(pl.LightningModule):
         )
         if learner_name == "ordinal_geometry_embeddings":
             self.prompt_learner = OrdinalGeometryEmbeddings(init_embeddings)
+        elif learner_name == "text_lora_prototypes":
+            # Direction 2: description ensemble through a LoRA-adapted text encoder
+            tl_cfg = pl_cfg.get("text_lora", {})
+            if tl_cfg.get("enabled", True):
+                attach_text_lora(
+                    self.clip_model,
+                    r=int(tl_cfg.get("r", 2)),
+                    alpha=float(tl_cfg.get("alpha", 1.0)),
+                    dropout=float(tl_cfg.get("dropout", 0.25)),
+                    targets=list(tl_cfg.get("targets", ["q", "k", "v"])),
+                )
+            self.prompt_learner = TextLoRAPrototypes(
+                self.clip_model, self.text_encoder,
+                prompt_set=pl_cfg.get("prompt_set", "icdr_ensemble"),
+                num_ranks=self.num_ranks,
+            )
         elif learner_name == "rankformer_prompt_learner":
             self.prompt_learner = RankFormerPromptLearner(
                 self.clip_model,
@@ -175,6 +195,9 @@ class FewShotOrdinalRunner(pl.LightningModule):
             full_finetune=cfg.model.image_encoder.get("full_finetune", False),
             train_logit_scale=not cfg.model.get("freeze_logit_scale", True),
         )
+        # Text-LoRA weights sit inside the (otherwise frozen) text transformer
+        for p in text_lora_parameters(self.clip_model):
+            p.requires_grad = True
 
         # Metric accumulators — cleared after every eval epoch
         self.val_preds: list[torch.Tensor] = []
@@ -244,7 +267,7 @@ class FewShotOrdinalRunner(pl.LightningModule):
 
     def on_train_batch_end(self, outputs, batch, batch_idx: int) -> None:
         # Project the raw parameter back onto the sphere after every optimiser step
-        if self.direct and self.renorm_after_step:
+        if self.direct and self.renorm_after_step and hasattr(self.prompt_learner, "renormalize_"):
             self.prompt_learner.renormalize_()
 
     def training_step(self, batch, batch_idx):
@@ -293,6 +316,13 @@ class FewShotOrdinalRunner(pl.LightningModule):
             terms["ladder"] = ladder_loss(t_hat, self.ladder_margin)
             terms["smooth"], terms["align"] = l_smooth, l_align
             terms["anchor"] = anchor_loss(t_hat, self.prompt_learner.anchors, self.prompt_learner.anchor_lambdas)
+            if w["w_desc"] != 0 and getattr(self.prompt_learner, "last_desc", None) is not None:
+                # Direction 2: keep every grade's description cloud separated and ordered
+                terms["desc"] = description_order_loss(
+                    self.prompt_learner.last_desc.float(), self.prompt_learner.desc_labels,
+                    t_hat, logit_scale.float(), self.criterion_rank,
+                )
+                loss = loss + w["w_desc"] * terms["desc"]
             loss = (
                 loss
                 + w["w_ladder"] * terms["ladder"]
@@ -409,7 +439,8 @@ class FewShotOrdinalRunner(pl.LightningModule):
         lr = self.cfg.train.lr
         wd = self.cfg.train.get("weight_decay", 1e-4)
 
-        if self.direct:
+        text_lora = [p for p in text_lora_parameters(self.clip_model) if p.requires_grad]
+        if self.direct and hasattr(self.prompt_learner, "t"):
             # Grade embeddings: own lr, no weight decay (decay on a sphere-projected
             # parameter only shrinks its norm and changes the effective step size)
             text_param = self.prompt_learner.t
@@ -418,6 +449,12 @@ class FewShotOrdinalRunner(pl.LightningModule):
                 {"params": others},
                 {"params": [text_param], "lr": self.cfg.train.get("text_lr", lr), "weight_decay": 0.0},
             ]
+        elif text_lora:
+            # Direction 2: text-LoRA weights get their own learning rate (train.text_lr)
+            lora_ids = {id(p) for p in text_lora}
+            others = [p for p in self.parameters() if p.requires_grad and id(p) not in lora_ids]
+            params = [{"params": others}, {"params": text_lora, "lr": self.cfg.train.get("text_lr", lr)}]
+            params = [g for g in params if g["params"]]
         else:
             params = [p for p in self.parameters() if p.requires_grad]
 

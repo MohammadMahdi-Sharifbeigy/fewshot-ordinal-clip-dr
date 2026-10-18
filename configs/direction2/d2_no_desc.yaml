@@ -1,0 +1,4 @@
+defaults:
+  - d2_full
+loss:
+  w_desc: 0.0

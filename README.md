@@ -289,6 +289,28 @@ python scripts/sweep.py --config configs/direction1/d1_full.yaml --kshots 0,1,2,
 
 ---
 
+## Direction 2: ordinal text-encoder LoRA (branch `direction2-ordinal-text-lora`)
+
+Here the grade prompts stay in clinical language and CLIP's **text encoder** is adapted with LoRA, instead of learning prompt tokens or free grade vectors.
+
+**How the grade embeddings are built and trained**
+- Each grade has five ICDR-based descriptions (`src/models/prompt_learner/text_lora_prototypes.py`). The grade prototype is the normalised mean of its description embeddings.
+- LoRA (`src/models/text_lora.py`) adds low-rank updates to q, k, v of all 12 text-transformer layers (CLIP-LoRA defaults: r = 2, α = 1, dropout 0.25); the original weights stay frozen.
+- Ordinal structure is enforced on the encoder's outputs:
+  - the Direction 1 **ladder** on the prototypes;
+  - **description ordering** (`src/models/text_losses.py`): every description is scored against all grades and must rank its own grade first and farther grades lower;
+  - an **anchor** to the zero-shot prototypes.
+- The image side and the image-text losses are the same as Direction 1.
+
+**Configs**
+- **Main method:** `configs/direction2/d2_full.yaml`.
+- **Ablations** (`configs/direction2/`): `d2_no_ladder`, `d2_no_desc`, `d2_no_anchor`, `d2_no_ordinal_reg`, `d2_frozen_text`, `d2_single_prompt`, `d2_plain_prompts`, `d2_lora_r8`, `d2_lora_qkvo`.
+- **Baselines** (`configs/baselines/`): `cliplora` (CLIP-LoRA: LoRA on both encoders, template prompt, CE only) and `cliplora_ordinal` (plus CLIP-DR ranking, L2RCLIP pairwise and SMS).
+
+Notebook: [`notebooks/DeepDRiD_Direction2.ipynb`](notebooks/DeepDRiD_Direction2.ipynb). Design: `docs/superpowers/specs/2026-10-19-direction2-ordinal-text-lora-design.md`.
+
+---
+
 ## Work in progress: MSO-CLIP (multi-modal)
 
 `src/models/mso_clip_runner.py` extends the framework to the **MMRDR** dataset, which provides three modalities per patient: CFP, OCT and UWF. Each modality gets its own LoRA adapter on a shared frozen backbone. Two RankFormers produce prototypes for the two grading scales (5 grades for CFP/UWF, 3 grades for OCT). A cross-modal Transformer fuses the three visual tokens into one patient-level vector and uses a learned `[MISSING]` embedding for absent modalities. Training combines the unimodal losses with a patient-level ordinal loss.

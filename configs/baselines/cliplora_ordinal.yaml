@@ -1,0 +1,11 @@
+# CLIP-LoRA plus our image-side ordinal losses (CLIP-DR ranking, L2RCLIP pairwise, SMS):
+# the fair "CLIP-LoRA + ordinal losses" baseline for Direction 2
+defaults:
+  - cliplora
+model:
+  sms:
+    enabled: true
+loss:
+  w_clipdr: 1.0
+  w_l2r: 1.0
+  w_sms: 1

@@ -1,0 +1,11 @@
+# Text encoder frozen: fixed zero-shot ensemble prototypes, only the image LoRA learns
+defaults:
+  - d2_full
+model:
+  prompt_learner:
+    text_lora:
+      enabled: false
+loss:
+  w_ladder: 0.0
+  w_desc: 0.0
+  w_anchor: 0.0
