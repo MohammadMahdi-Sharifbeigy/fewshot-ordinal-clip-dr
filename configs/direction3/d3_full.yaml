@@ -1,7 +1,7 @@
 # Direction 3 (main method): grades as von Mises-Fisher distributions in CLIP's
 # joint space. Means start from the zero-shot ICDR description ensemble, one
 # learned concentration per grade, vMF-mixture posterior as the classifier.
-# CE + CLIP-DR ranking + L2RCLIP pairwise on the vMF logits, ladder and anchor
+# CE + CLIP-DR ranking on the vMF logits, ladder and anchor
 # on the means, log-normal prior on the concentrations. No SMS: broad grades
 # already spread probability onto their neighbours.
 defaults:
@@ -22,7 +22,7 @@ model:
 loss:
   w_ce: 1.0
   w_clipdr: 1.0
-  w_l2r: 1.0
+  w_pairwise: 0.0     # distance-weighted pairwise loss (L2RCLIP-inspired): see *_plus_pairwise.yaml
   w_sms: 0
   w_ladder: 1.0
   w_anchor: 1.0

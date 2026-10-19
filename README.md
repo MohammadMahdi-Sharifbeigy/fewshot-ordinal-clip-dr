@@ -324,10 +324,10 @@ Each grade is a **von Mises–Fisher distribution** on CLIP's unit sphere instea
 - Grade $`k`$ has a mean direction $`\mu_k`$ (started from the zero-shot ICDR description ensemble) and a learned concentration $`\kappa_k`$ (how sharply the grade is defined).
 - An image is classified by the vMF-mixture posterior, $`\text{logit}_k = \kappa_k \mu_k^\top z + \log C_D(\kappa_k)`$. With equal $`\kappa`$ this is CLIP's softmax; a broad grade spreads probability onto its neighbours, so ordinal smoothing is part of the model rather than a post-hoc SMS step.
 - The vMF normaliser needs $`\log I_\nu(\kappa)`$ at $`\nu = 511`$; `src/models/vmf.py` uses the uniform asymptotic expansion (matches mpmath to about $`10^{-11}`$).
-- Losses: CE + CLIP-DR ranking + L2RCLIP pairwise, the Direction 1 ladder and anchor on the means, and a log-normal prior on $`\kappa`$. SMS is off by default.
+- Losses: CE + CLIP-DR ranking, the Direction 1 ladder and anchor on the means, and a log-normal prior on $`\kappa`$. SMS is off by default.
 - Every run also reports **NLL** and the **Brier score** next to ECE.
 
-**Configs** (`configs/direction3/`): `d3_full` and the ablations `d3_shared_kappa`, `d3_fixed_kappa`, `d3_expected_sim`, `d3_with_sms`, `d3_no_ladder`, `d3_no_anchor`, `d3_no_kappa_prior`, `d3_single_prompt`, `d3_kappa50`.
+**Configs** (`configs/direction3/`): `d3_full` and the ablations `d3_shared_kappa`, `d3_fixed_kappa`, `d3_expected_sim`, `d3_with_sms`, `d3_no_ladder`, `d3_no_anchor`, `d3_no_kappa_prior`, `d3_single_prompt`, `d3_kappa50`, `d3_plus_pairwise` (adds our pairwise loss).
 
 Notebook: [`notebooks/DeepDRiD_Direction3.ipynb`](notebooks/DeepDRiD_Direction3.ipynb). Design: `docs/superpowers/specs/2026-10-19-direction3-probabilistic-ordinal-design.md`.
 
