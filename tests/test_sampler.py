@@ -15,7 +15,7 @@ def test_sampler():
         "data": {
             "modality": "CFP",
             "k_shot": 2,
-            "seed": 0,
+            "seed": 1,
             "batch_query": 32,
             "image_size": 224,
             "manifest": manifest_path,

@@ -1,0 +1,13 @@
+# Our model plus the L2RCLIP parts (our implementation): RankFormer over the rank
+# tokens and the distance-weighted pairwise loss, on top of LoRA + SMS + CLIP-DR
+# ranking loss. This was "Ours (Full)" before L2RCLIP was taken out of our model.
+defaults:
+  - default
+model:
+  prompt_learner:
+    name: "rankformer_prompt_learner"
+loss:
+  mu_pairwise: 1.0
+data:
+  manifest: "data/DeepDRiD/CFP_manifest.csv"
+  splits_dir: "data/DeepDRiD/splits"

@@ -10,7 +10,10 @@ model:
   text_encoder:
     name: "RN50"  # tied to clip_model, not loaded separately
   prompt_learner:
-    name: "rankformer_prompt_learner"  #rankformer_prompt_learner
+    # Our model uses OrdinalCLIP-style interpolated rank tokens. RankFormer (from
+    # L2RCLIP, whose code is not public) is only used in the L2RCLIP configs:
+    # configs/baselines/l2rclip_ours_impl.yaml and configs/ours_plus_l2rclip.yaml
+    name: "ordinalclip_rank_prompt_learner"
     num_ranks: 5
     num_tokens_for_context: 16
     attn_heads: 4
@@ -24,7 +27,7 @@ model:
     # OrdinalCLIP options shared by both prompt learners
     init_context: null        # sentence to initialise the context tokens (sets their number)
     full_stop: false          # sentence "<ctx> <rank>." as in OrdinalCLIP
-    interpolation: "linear"   # OrdinalCLIP base-rank interpolation: linear | inv_prop | normal
+    interpolation: "linear"   # OrdinalCLIP base-rank interpolation: linear | inv_prop | normal | none (= CLIP-DR, num_base = num_ranks)
   # OrdinalCLIP and CLIP-DR keep CLIP's logit scale fixed (lr 0)
   freeze_logit_scale: true
   sms:
@@ -51,7 +54,9 @@ data:
   augment: "clip"
 loss:
   lambda_rank: 1.0
-  mu_pairwise: 1.0
+  # L2RCLIP-inspired distance-weighted pairwise loss: off in our model, on in the
+  # L2RCLIP configs (see prompt_learner.name above)
+  mu_pairwise: 0.0
   w_kl: 0.0          # OrdinalCLIP's text-to-image KL loss
   tau: 1.0
 train:

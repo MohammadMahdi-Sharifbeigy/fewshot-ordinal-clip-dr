@@ -7,12 +7,12 @@ train = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(train)
 
 FILES = sorted(glob.glob("configs/direction1/*.yaml")) + [
-    f"configs/baselines/{n}.yaml" for n in ("clipdr_matched", "l2rclip_matched", "clap_matched", "clap_native")
+    f"configs/baselines/{n}.yaml" for n in ("clipdr_matched", "l2rclip_ours_impl", "clap_matched", "clap_native")
 ]
 
 
 def test_all_configs_load_with_full_keys():
-    assert len(FILES) == 14
+    assert len(FILES) == 15
     for f in FILES:
         c = train.load_config(f)
         assert c.model.prompt_learner.num_ranks == 5 and "DeepDRiD" in c.data.manifest, f
@@ -31,6 +31,6 @@ def test_key_switches():
 
 
 def test_matched_baselines_use_lora():
-    for n in ("clipdr_matched", "l2rclip_matched", "clap_matched"):
+    for n in ("clipdr_matched", "l2rclip_ours_impl", "clap_matched"):
         c = train.load_config(f"configs/baselines/{n}.yaml")
         assert c.model.image_encoder.lora.enabled is True and c.train.optimizer == "adamw", n
