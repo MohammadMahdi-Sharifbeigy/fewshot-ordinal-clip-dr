@@ -38,10 +38,10 @@ The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot 
 
 ## Framework
 
-> **Note.** The figure, the block-by-block walkthrough and the results below describe the earlier main model (with RankFormer and the pairwise loss, trained before the per-eye labels and patient-grouped splits). They will be updated with the new runs.
+> **Note.** The figure shows the current main model: OrdinalCLIP rank prompts, image LoRA, ranking-aware loss and training-only SMS, on per-eye labels with patient-grouped splits. The block-by-block walkthrough and the results below still describe the earlier model (with RankFormer and the pairwise loss). They will be updated with the new runs.
 
 <p align="center">
-  <img src="assets/framework.svg" alt="Framework overview: (a) data and few-shot protocol, (b) ordinal-aware CLIP model with LoRA image encoder and RankFormer prompt learner, (c) training objective, SMS calibration and evaluation, (d) experimental protocol" width="100%"/>
+  <img src="assets/framework.svg" alt="Framework overview: (a) DeepDRiD data and nested k-shot protocol with patient-level splits, (b) CLIP RN50 with LoRA and an OrdinalCLIP rank prompt learner, (c) cross-entropy plus ranking-aware loss, training-only SMS calibration and evaluation metrics, (d) experimental protocol" width="100%"/>
 </p>
 
 ### Block-by-block walkthrough
