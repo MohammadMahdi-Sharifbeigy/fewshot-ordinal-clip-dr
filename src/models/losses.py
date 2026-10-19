@@ -80,10 +80,12 @@ class OrdinalCLIPKLLoss(nn.Module):
 
 
 class CrossModalPairwiseLoss(nn.Module):
-    """L2RCLIP Cross-Modal Pairwise CE Loss — fully vectorized.
+    """Distance-weighted pairwise CE loss — fully vectorized.
 
-    Penalises images being closer to wrong-rank prototypes, weighted by
-    the ordinal distance |y_i − j|.
+    Our loss, inspired by L2RCLIP's cross-modal ordinal pairwise loss (Wang et
+    al., NeurIPS 2023) but not the same loss; L2RCLIP's repository does not
+    contain it. Penalises images being closer to wrong-rank prototypes,
+    weighted by the ordinal distance |y_i − j|.
 
     Similarities are computed on the same scale as the main logits
     (logit_scale · cos / tau). On raw cosines (logit_scale = 1) the pairwise

@@ -20,6 +20,8 @@ wandb/
 /data/
 results/
 results_v2/
+results_v3/
+results_shared/
 results_d1/
 *.csv
 *.log

@@ -390,9 +390,17 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.log(f"{prefix}_odc_offdiag", shape["odc_offdiag"])
         self.log(f"{prefix}_ece", shape["ece"])
 
+        # Proper scoring rules for the predicted grade distribution
+        p_true = probs[np.arange(len(targets)), targets]
+        nll = float(-np.log(np.clip(p_true, 1e-12, None)).mean())
+        brier = float(((probs - np.eye(K)[targets]) ** 2).sum(axis=1).mean())
+        self.log(f"{prefix}_nll", nll)
+        self.log(f"{prefix}_brier", brier)
+
         self.latest_metrics = {
             "qwk": qwk, "mae": mae, "f1": macro_f1,
             "auc": auc, "acc": acc, "los": los,
+            "nll": nll, "brier": brier,
             **shape,
         }
 
