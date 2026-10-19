@@ -11,6 +11,7 @@ from .prompt_learner.ordinalclip_head import OrdinalCLIPHead
 from .losses import RankingAwareLoss, CrossModalPairwiseLoss, OrdinalCLIPKLLoss
 from .sms import SMS
 from .lora_adapter import attach_lora, set_trainable
+from ..utils.ordinal_metrics import ordinal_shape_metrics
 
 
 class FewShotOrdinalRunner(pl.LightningModule):
@@ -253,9 +254,23 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.log(f"{prefix}_acc", acc)
         self.log(f"{prefix}_los", los)
 
+        shape = ordinal_shape_metrics(targets, preds, probs, K)
+        self.log(f"{prefix}_odc_full", shape["odc_full"])
+        self.log(f"{prefix}_odc_offdiag", shape["odc_offdiag"])
+        self.log(f"{prefix}_ece", shape["ece"])
+
+        # Proper scoring rules for the predicted grade distribution
+        p_true = probs[np.arange(len(targets)), targets]
+        nll = float(-np.log(np.clip(p_true, 1e-12, None)).mean())
+        brier = float(((probs - np.eye(K)[targets]) ** 2).sum(axis=1).mean())
+        self.log(f"{prefix}_nll", nll)
+        self.log(f"{prefix}_brier", brier)
+
         self.latest_metrics = {
             "qwk": qwk, "mae": mae, "f1": macro_f1,
             "auc": auc, "acc": acc, "los": los,
+            "nll": nll, "brier": brier,
+            **shape,
         }
 
         self.val_preds.clear()
