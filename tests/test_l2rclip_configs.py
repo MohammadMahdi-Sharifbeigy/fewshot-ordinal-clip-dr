@@ -27,3 +27,13 @@ def test_ours_plus_l2rclip():
     assert cfg.loss.lambda_rank == ours.loss.lambda_rank
     assert cfg.model.image_encoder.lora.enabled == ours.model.image_encoder.lora.enabled
     assert cfg.data.manifest == ours.data.manifest
+
+
+def test_direction_main_models_have_no_pairwise_term():
+    import glob
+    from src.models.runner import resolve_loss_weights
+
+    for path in glob.glob("configs/direction*/d*_full.yaml"):
+        assert resolve_loss_weights(load_config(path).loss)["w_pairwise"] == 0.0, path
+        plus = path.replace("_full.yaml", "_plus_pairwise.yaml")
+        assert resolve_loss_weights(load_config(plus).loss)["w_pairwise"] > 0.0, plus

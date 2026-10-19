@@ -15,7 +15,7 @@ model:
 loss:
   w_ce: 1.0
   w_clipdr: 0.0
-  w_l2r: 0.0
+  w_pairwise: 0.0
   w_ladder: 0.0
   w_path: 0.0
   w_anchor: 1.0

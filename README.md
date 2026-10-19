@@ -275,15 +275,15 @@ This direction replaces the prompt learner with five grade embeddings $`t_0, \do
 **Metrics.** Every run also reports the confusion matrix, ECE, and **ODC** (Ordinal Decay Consistency, `src/utils/ordinal_metrics.py`). ODC measures whether error mass decreases monotonically away from the diagonal in each row of the confusion matrix, in two variants: `odc_full` and `odc_offdiag`. Direct-embedding runs also write per-epoch geometry diagnostics to `geometry.json`.
 
 **Configs**
-- **Main method:** `configs/direction1/d1_full.yaml` (CE + CLIP-DR ranking + L2RCLIP pairwise + SMS + geometry).
+- **Main method:** `configs/direction1/d1_full.yaml` (CE + CLIP-DR ranking + SMS + geometry). `d1_plus_pairwise` adds our distance-weighted pairwise loss (inspired by L2RCLIP).
 - **Ablations** (`configs/direction1/`):
   - `d1_ce_geometry`, `d1_no_geometry`;
   - `d1_no_ladder`, `d1_no_path`, `d1_no_anchor`;
   - `d1_init_plain`, `d1_init_random`;
   - `d1_anchor_invsqrt` (λ from DeepDRiD training-split prevalence);
-  - `d1_rankformer` (the current model).
-- **Matched baselines** (LoRA r = 16, same recipe), in `configs/baselines/`: `clipdr_matched`, `l2rclip_matched`, `clap_matched`.
-- **Native-recipe baselines:** `clipdr_on_ordinalclip`, `l2rclip_stock`, `clap_native`.
+  - `d1_rankformer` (the earlier prompt-based model with the L2RCLIP parts, = `configs/ours_plus_l2rclip.yaml`).
+- **Matched baselines** (LoRA r = 16, same recipe), in `configs/baselines/`: `clipdr_matched` (checked against CLIP-DR's code), `l2rclip_ours_impl` (L2RCLIP from the paper: RankFormer + our pairwise loss; its repository has no model or training code), `clap_matched`.
+- **Native-recipe baselines:** `clipdr_official`, `ordinalclip_official`, `clap_native`.
 
 Design and plan: `docs/superpowers/specs/2026-10-17-direction1-ordinal-geometry-design.md`, `docs/superpowers/plans/2026-10-17-direction1-ordinal-geometry.md`.
 

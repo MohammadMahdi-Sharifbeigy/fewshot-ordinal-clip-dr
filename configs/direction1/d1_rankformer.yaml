@@ -1,3 +1,4 @@
-# Current RankFormer model (Ours (Full)) re-run on this code
+# The earlier prompt-based main model: our model plus the L2RCLIP parts
+# (RankFormer + pairwise loss), i.e. configs/ours_plus_l2rclip.yaml.
 defaults:
-  - ../deepdrid_cfp
+  - ../ours_plus_l2rclip

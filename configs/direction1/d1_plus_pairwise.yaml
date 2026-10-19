@@ -1,0 +1,6 @@
+# d1_full plus our distance-weighted pairwise loss (inspired by L2RCLIP's cross-modal
+# ordinal pairwise loss, not the same loss; L2RCLIP's repository has no model or training code)
+defaults:
+  - d1_full
+loss:
+  w_pairwise: 1.0
