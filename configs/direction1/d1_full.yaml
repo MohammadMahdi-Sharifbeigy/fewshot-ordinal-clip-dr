@@ -1,5 +1,5 @@
 # Direction 1 (main method): direct ordinal-geometry grade embeddings,
-# CE + CLIP-DR ranking + L2RCLIP pairwise + SMS + ladder / path / anchor geometry
+# CE + CLIP-DR ranking + SMS + ladder / path / anchor geometry
 defaults:
   - ../deepdrid_cfp
 model:
@@ -15,7 +15,7 @@ model:
 loss:
   w_ce: 1.0
   w_clipdr: 1.0
-  w_l2r: 1.0
+  w_pairwise: 0.0     # distance-weighted pairwise loss (L2RCLIP-inspired): see *_plus_pairwise.yaml
   w_sms: 1
   w_ladder: 1.0
   w_path: 1.0

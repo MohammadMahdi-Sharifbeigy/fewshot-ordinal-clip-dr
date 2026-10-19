@@ -26,15 +26,19 @@ This repository adapts a frozen **CLIP** model to few-shot ordinal DR grading wi
 | Component | What it does | Trainable |
 |---|---|:-:|
 | **LoRA image adapters** | Low-rank updates (r = 16) on the conv layers of the frozen CLIP ResNet-50 | yes |
-| **RankFormer prompt learner** | 16 shared context tokens + 5 rank tokens; multi-head self-attention lets rank tokens exchange ordinal context before the frozen text encoder | yes |
-| **Ordinal objective** | Cross-entropy + ranking-aware loss (monotonic similarity around the true grade) + cross-modal pairwise loss weighted by grade distance | – |
-| **Similarity Matrix Smoothing (SMS)** | Gaussian-kernel smoothing of per-grade similarity statistics, then a column-wise mean shift at inference | statistics only |
+| **Rank prompt learner** | 16 shared context tokens + 5 grade tokens interpolated from 3 learnable base tokens (OrdinalCLIP's weighting), through the frozen text encoder | yes |
+| **Ordinal objective** | Cross-entropy + CLIP-DR's ranking-aware loss (similarity falls off monotonically around the true grade) | – |
+| **Similarity Matrix Smoothing (SMS)** | CLIP-DR's smoothing in its FDS form: during training, each grade's similarity statistics (mean, variance) are smoothed over neighbouring grades and the training similarities re-normalised; nothing changes at inference | statistics only |
+
+RankFormer (from the L2RCLIP paper, reimplemented: its repository has no model or training code) and our distance-weighted pairwise loss (inspired by L2RCLIP's cross-modal ordinal pairwise loss, not the same loss) are **not part of the main model**. They are available as `configs/ours_plus_l2rclip.yaml` (our model plus both) and `configs/baselines/l2rclip_ours_impl.yaml` (both on their own).
 
 The model is evaluated across **8 data regimes** (zero-shot, 1/2/4/8/16/32-shot and full training), **3 seeds** and **9 ablation variants** on DeepDRiD (CFP).
 
 ---
 
 ## Framework
+
+> **Note.** The figure, the block-by-block walkthrough and the results below describe the earlier main model (with RankFormer and the pairwise loss, trained before the per-eye labels and patient-grouped splits). They will be updated with the new runs.
 
 <p align="center">
   <img src="assets/framework.svg" alt="Framework overview: (a) data and few-shot protocol, (b) ordinal-aware CLIP model with LoRA image encoder and RankFormer prompt learner, (c) training objective, SMS calibration and evaluation, (d) experimental protocol" width="100%"/>
@@ -76,7 +80,7 @@ The support set is trained with
 \mathcal{L}_{\mathrm{rank}} = \sum_{j=1}^{y} -\log \sigma\!\left(\frac{S_j - S_{j-1}}{\tau}\right) \;+\; \sum_{j=y}^{K-2} -\log \sigma\!\left(\frac{S_j - S_{j+1}}{\tau}\right)
 ```
 
-- $`\mathcal{L}_{\mathrm{pair}}`$, the **cross-modal pairwise loss** (after L2RCLIP). It penalises an image for being closer to a wrong-grade prototype, and the penalty grows with the grade distance:
+- $`\mathcal{L}_{\mathrm{pair}}`$, the **distance-weighted pairwise loss** (ours, inspired by L2RCLIP's cross-modal ordinal pairwise loss; optional, not in the main model). It penalises an image for being closer to a wrong-grade prototype, and the penalty grows with the grade distance:
 
 ```math
 \mathcal{L}_{\mathrm{pair}} = \sum_{j \neq y} |y - j| \cdot \Big(-\log \sigma\big(z_y - z_j\big)\Big), \qquad z_j = \frac{f^{\top} t_j}{\tau}
@@ -161,12 +165,12 @@ Trained on only 32 images per grade, our model keeps most of its errors on neigh
 .
 ├── assets/                     # README figures (framework diagram, result plots)
 ├── configs/
-│   ├── default.yaml            # full model: LoRA + RankFormer + ranking/pairwise losses + SMS
+│   ├── default.yaml            # main model: LoRA + OrdinalCLIP-style rank prompts + ranking loss + SMS
 │   ├── deepdrid_cfp.yaml       # DeepDRiD (CFP) dataset config
 │   ├── aptos_cfp.yaml          # APTOS (CFP) dataset config
 │   ├── mrdr_{cfp,oct,uwf}.yaml # MMRDR single-modality configs
 │   ├── mmrdr_multimodal.yaml   # MSO-CLIP multi-modal config (work in progress)
-│   └── baselines/              # OrdinalCLIP / CoOp+LoRA / L2RCLIP / CLIP-DR style baselines
+│   └── baselines/              # OrdinalCLIP, CLIP-DR (matched / official), L2RCLIP (our impl.)
 ├── notebooks/
 │   └── DeepDRiD_FewShot_DR_fixed.ipynb   # main end-to-end pipeline (data → train → ablate → plots)
 ├── scripts/
@@ -180,8 +184,8 @@ Trained on only 32 images per grade, our model keeps most of its errors on neigh
 │   └── models/
 │       ├── clip_backbone.py    # CLIP loader + prompt-driven text encoder
 │       ├── lora_adapter.py     # LoRA injection & freezing
-│       ├── prompt_learner/     # RankFormer, OrdinalCLIP head (ablation)
-│       ├── losses.py           # ranking-aware loss, cross-modal pairwise loss
+│       ├── prompt_learner/     # OrdinalCLIP / CLIP-DR rank head, RankFormer
+│       ├── losses.py           # ranking-aware, OrdinalCLIP KL, distance-weighted pairwise
 │       ├── sms.py              # Similarity Matrix Smoothing
 │       ├── runner.py           # FewShotOrdinalRunner (LightningModule)
 │       └── mso_clip_runner.py  # multi-modal extension (CFP + OCT + UWF)
@@ -232,18 +236,19 @@ python scripts/train.py --config configs/deepdrid_cfp.yaml data.k_shot=16 data.s
 # the whole k-shot × seed sweep
 python scripts/sweep.py --config configs/deepdrid_cfp.yaml --kshots 1,2,4,8,16,32 --seeds 1,2,3
 
-# ablations are plain config overrides, e.g. "w/o RankFormer"
-python scripts/train.py --config configs/deepdrid_cfp.yaml data.k_shot=16 \
-       model.prompt_learner.name=ordinalclip_rank_prompt_learner
+# ablations are plain config overrides, e.g. "w/o SMS"
+python scripts/train.py --config configs/deepdrid_cfp.yaml data.k_shot=16 model.sms.enabled=false
 ```
 
-| Ablation | Overrides |
+| Variant | Config / overrides |
 |---|---|
-| w/o RankFormer | `model.prompt_learner.name=ordinalclip_rank_prompt_learner` |
 | w/o SMS | `model.sms.enabled=false` |
-| w/o $`\mathcal{L}_{\mathrm{pair}}`$ | `loss.mu_pairwise=0.0` |
 | w/o $`\mathcal{L}_{\mathrm{rank}}`$ | `loss.lambda_rank=0.0` |
 | w/o LoRA | `model.image_encoder.lora.enabled=false` |
+| Ours + L2RCLIP parts | `configs/ours_plus_l2rclip.yaml` |
+| OrdinalCLIP (matched / official) | `configs/baselines/ordinalclip_matched.yaml`, `ordinalclip_official.yaml` |
+| CLIP-DR (matched / official) | `configs/baselines/clipdr_matched.yaml`, `clipdr_official.yaml` |
+| L2RCLIP (our impl.) | `configs/baselines/l2rclip_ours_impl.yaml` |
 
 Each run writes `results/<variant>/<MOD>_<k>shot_s<seed>/{best.ckpt,test_stats.json}`.
 
@@ -270,15 +275,15 @@ This direction replaces the prompt learner with five grade embeddings $`t_0, \do
 **Metrics.** Every run also reports the confusion matrix, ECE, and **ODC** (Ordinal Decay Consistency, `src/utils/ordinal_metrics.py`). ODC measures whether error mass decreases monotonically away from the diagonal in each row of the confusion matrix, in two variants: `odc_full` and `odc_offdiag`. Direct-embedding runs also write per-epoch geometry diagnostics to `geometry.json`.
 
 **Configs**
-- **Main method:** `configs/direction1/d1_full.yaml` (CE + CLIP-DR ranking + L2RCLIP pairwise + SMS + geometry).
+- **Main method:** `configs/direction1/d1_full.yaml` (CE + CLIP-DR ranking + SMS + geometry). `d1_plus_pairwise` adds our distance-weighted pairwise loss (inspired by L2RCLIP).
 - **Ablations** (`configs/direction1/`):
   - `d1_ce_geometry`, `d1_no_geometry`;
   - `d1_no_ladder`, `d1_no_path`, `d1_no_anchor`;
   - `d1_init_plain`, `d1_init_random`;
   - `d1_anchor_invsqrt` (λ from DeepDRiD training-split prevalence);
-  - `d1_rankformer` (the current model).
-- **Matched baselines** (LoRA r = 16, same recipe), in `configs/baselines/`: `clipdr_matched`, `l2rclip_matched`, `clap_matched`.
-- **Native-recipe baselines:** `clipdr_on_ordinalclip`, `l2rclip_stock`, `clap_native`.
+  - `d1_rankformer` (the earlier prompt-based model with the L2RCLIP parts, = `configs/ours_plus_l2rclip.yaml`).
+- **Matched baselines** (LoRA r = 16, same recipe), in `configs/baselines/`: `clipdr_matched` (checked against CLIP-DR's code), `l2rclip_ours_impl` (L2RCLIP from the paper: RankFormer + our pairwise loss; its repository has no model or training code), `clap_matched`.
+- **Native-recipe baselines:** `clipdr_official`, `ordinalclip_official`, `clap_native`.
 
 Design and plan: `docs/superpowers/specs/2026-10-17-direction1-ordinal-geometry-design.md`, `docs/superpowers/plans/2026-10-17-direction1-ordinal-geometry.md`.
 
@@ -324,10 +329,9 @@ This work builds on the ideas and open-source code below. The third-party reposi
 | Work | Used for | Code |
 |---|---|---|
 | **CLIP**, Radford et al., ICML 2021 | Frozen vision–language backbone | [openai/CLIP](https://github.com/openai/CLIP) |
-| **CLIP-DR**, Yu et al., MICCAI 2024 | Ranking-aware prompting loss, SMS; baseline | [Qinkaiyu/CLIP-DR](https://github.com/Qinkaiyu/CLIP-DR) |
+| **CLIP-DR**, Yu et al., MICCAI 2024 | Ranking-aware loss, SMS, plain rank prompts; baseline | [Qinkaiyu/CLIP-DR](https://github.com/Qinkaiyu/CLIP-DR) |
 | **OrdinalCLIP**, Li et al., NeurIPS 2022 | Learnable rank prompts; baseline / ablation head | [xk-huang/OrdinalCLIP](https://github.com/xk-huang/OrdinalCLIP) |
-| **L2RCLIP**, Wang et al., NeurIPS 2023 | Cross-modal pairwise ordinal loss, RankFormer idea | [raywang335/L2RCLIP](https://github.com/raywang335/L2RCLIP) |
-| **Ordinal DR Grading**, Stelter et al., NLDL 2026 (submitted) | Ordinal DR grading reference & data splits | [Trustworthy-AI-UU-NKI/Ordinal-DR-Grading](https://github.com/Trustworthy-AI-UU-NKI/Ordinal-DR-Grading) |
+| **L2RCLIP**, Wang et al., NeurIPS 2023 | RankFormer (reimplemented from the paper; the repository has no model or training code) and the idea behind our distance-weighted pairwise loss; optional configs | [raywang335/L2RCLIP](https://github.com/raywang335/L2RCLIP) |
 | **LoRA**, Hu et al., ICLR 2022 | Parameter-efficient adaptation | [huggingface/peft](https://github.com/huggingface/peft) |
 | **DeepDRiD**, Liu et al., Patterns 2022 | Benchmark dataset | [deepdrdoc/DeepDRiD](https://github.com/deepdrdoc/DeepDRiD) |
 

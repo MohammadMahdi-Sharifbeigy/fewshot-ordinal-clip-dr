@@ -14,7 +14,15 @@ INTERPOLATION_FUNCTIONS = {
 
 
 def interpolation_weights(num_ranks: int, num_base: int, dtype=torch.float32, interpolation: str = "linear") -> torch.Tensor:
-    """OrdinalCLIP interpolation weights [num_ranks, num_base]; each row sums to 1."""
+    """OrdinalCLIP interpolation weights [num_ranks, num_base]; each row sums to 1.
+
+    interpolation="none" (num_base == num_ranks) gives one free token per rank,
+    i.e. CLIP-DR's PlainPromptLearner.
+    """
+    if interpolation == "none":
+        if num_base != num_ranks:
+            raise ValueError(f"interpolation='none' needs num_base == num_ranks, got {num_base} and {num_ranks}")
+        return torch.eye(num_ranks, dtype=dtype)
     if interpolation not in INTERPOLATION_FUNCTIONS:
         raise ValueError(f"Unknown interpolation: {interpolation}")
     ranks = torch.arange(num_ranks, dtype=torch.float64)[:, None].repeat(1, num_base)

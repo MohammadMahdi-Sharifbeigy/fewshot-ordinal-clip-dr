@@ -3,5 +3,5 @@ defaults:
   - d1_full
 loss:
   w_clipdr: 0.0
-  w_l2r: 0.0
+  w_pairwise: 0.0
   w_sms: 0

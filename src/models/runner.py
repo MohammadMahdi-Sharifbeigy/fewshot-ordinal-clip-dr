@@ -20,7 +20,11 @@ from ..utils.ordinal_metrics import ordinal_shape_metrics
 
 
 def resolve_loss_weights(loss_cfg) -> dict[str, float]:
-    """Loss weights from the config; old keys lambda_rank / mu_pairwise map to w_clipdr / w_l2r."""
+    """Loss weights from the config.
+
+    Old keys still work: lambda_rank -> w_clipdr; mu_pairwise or w_l2r -> w_pairwise
+    (our distance-weighted pairwise loss, inspired by L2RCLIP; not part of the main models).
+    """
     def get(key, fallback_key=None, default=0.0):
         if key in loss_cfg:
             return float(loss_cfg[key])
@@ -31,7 +35,7 @@ def resolve_loss_weights(loss_cfg) -> dict[str, float]:
     return {
         "w_ce": get("w_ce", default=1.0),
         "w_clipdr": get("w_clipdr", "lambda_rank"),
-        "w_l2r": get("w_l2r", "mu_pairwise"),
+        "w_pairwise": get("w_pairwise", "w_l2r" if "w_l2r" in loss_cfg else "mu_pairwise"),
         "w_sms": get("w_sms", default=1.0),
         "w_ladder": get("w_ladder"),
         "w_path": get("w_path"),
@@ -294,15 +298,15 @@ class FewShotOrdinalRunner(pl.LightningModule):
         terms = {
             "ce": self.criterion_main(sim, target) if w["w_ce"] != 0 else zero,
             "clipdr": self.criterion_rank(sim, target) if w["w_clipdr"] != 0 else zero,
-            "l2r": (
+            "pairwise": (
                 self.criterion_pairwise(
                     image_features.float(), text_features.float(), target, logit_scale=logit_scale.float()
                 )
-                if w["w_l2r"] != 0
+                if w["w_pairwise"] != 0
                 else zero
             ),
         }
-        loss = w["w_ce"] * terms["ce"] + w["w_clipdr"] * terms["clipdr"] + w["w_l2r"] * terms["l2r"]
+        loss = w["w_ce"] * terms["ce"] + w["w_clipdr"] * terms["clipdr"] + w["w_pairwise"] * terms["pairwise"]
 
         if w["w_kl"] != 0:
             # OrdinalCLIP's text-to-image KL loss
@@ -420,9 +424,17 @@ class FewShotOrdinalRunner(pl.LightningModule):
         self.log(f"{prefix}_odc_offdiag", shape["odc_offdiag"])
         self.log(f"{prefix}_ece", shape["ece"])
 
+        # Proper scoring rules for the predicted grade distribution
+        p_true = probs[np.arange(len(targets)), targets]
+        nll = float(-np.log(np.clip(p_true, 1e-12, None)).mean())
+        brier = float(((probs - np.eye(K)[targets]) ** 2).sum(axis=1).mean())
+        self.log(f"{prefix}_nll", nll)
+        self.log(f"{prefix}_brier", brier)
+
         self.latest_metrics = {
             "qwk": qwk, "mae": mae, "f1": macro_f1,
             "auc": auc, "acc": acc, "los": los,
+            "nll": nll, "brier": brier,
             **shape,
         }
 
