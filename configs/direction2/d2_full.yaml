@@ -1,5 +1,5 @@
 # Direction 2 (main method): ICDR description ensemble through a LoRA-adapted CLIP
-# text encoder, CE + CLIP-DR ranking + L2RCLIP pairwise + SMS, plus ordinal
+# text encoder, CE + CLIP-DR ranking + SMS, plus ordinal
 # regularisers on the encoder's outputs (ladder on the grade prototypes,
 # description ordering, anchor to the zero-shot prototypes).
 defaults:
@@ -21,7 +21,7 @@ model:
 loss:
   w_ce: 1.0
   w_clipdr: 1.0
-  w_l2r: 1.0
+  w_pairwise: 0.0     # distance-weighted pairwise loss (L2RCLIP-inspired): see *_plus_pairwise.yaml
   w_sms: 1
   w_ladder: 1.0
   w_desc: 1.0

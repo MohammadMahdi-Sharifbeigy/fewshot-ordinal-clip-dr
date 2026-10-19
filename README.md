@@ -309,8 +309,8 @@ Here the grade prompts stay in clinical language and CLIP's **text encoder** is 
 
 **Configs**
 - **Main method:** `configs/direction2/d2_full.yaml`.
-- **Ablations** (`configs/direction2/`): `d2_no_ladder`, `d2_no_desc`, `d2_no_anchor`, `d2_no_ordinal_reg`, `d2_frozen_text`, `d2_single_prompt`, `d2_plain_prompts`, `d2_lora_r8`, `d2_lora_qkvo`.
-- **Baselines** (`configs/baselines/`): `cliplora` (CLIP-LoRA: LoRA on both encoders, template prompt, CE only) and `cliplora_ordinal` (plus CLIP-DR ranking, L2RCLIP pairwise and SMS).
+- **Ablations** (`configs/direction2/`): `d2_no_ladder`, `d2_no_desc`, `d2_no_anchor`, `d2_no_ordinal_reg`, `d2_frozen_text`, `d2_single_prompt`, `d2_plain_prompts`, `d2_lora_r8`, `d2_lora_qkvo`, `d2_plus_pairwise` (adds our pairwise loss).
+- **Baselines** (`configs/baselines/`): `cliplora` (CLIP-LoRA: LoRA on both encoders, template prompt, CE only) and `cliplora_ordinal` (plus CLIP-DR ranking and SMS).
 
 Notebook: [`notebooks/DeepDRiD_Direction2.ipynb`](notebooks/DeepDRiD_Direction2.ipynb). Design: `docs/superpowers/specs/2026-10-19-direction2-ordinal-text-lora-design.md`.
 
