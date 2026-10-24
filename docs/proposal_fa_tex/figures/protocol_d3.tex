@@ -1,0 +1,7 @@
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\protocolfig{AdamW, lr $10^{-4}$\\ $\mu$: wd 0, renormalised\\ $\log\kappa$: lr $10^{-2}$, wd 0\\ 50 epochs, bf16}{1{,}193{,}397 trainable}{\bchip{CLIP-DR matched (main)}\bchip{master}\bchip{Direction 1}\bchip{Direction 2}\bchip{CLIP-LoRA + ordinal}}{\achip{shared $\kappa$}\achip{fixed $\kappa$}\achip{expected similarity}\achip{+ SMS}\achip{w/o ladder}\achip{w/o anchor}\achip{w/o $\kappa$ prior}\achip{single-sentence init}\achip{$\kappa^{0}{=}50$}\achip{+ pairwise}}
+\end{tikzpicture}
+\end{document}

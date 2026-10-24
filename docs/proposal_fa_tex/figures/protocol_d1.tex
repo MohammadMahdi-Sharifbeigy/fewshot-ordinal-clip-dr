@@ -1,0 +1,7 @@
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\protocolfig{AdamW, lr $10^{-4}$\\ LoRA wd $10^{-4}$; vectors wd 0\\ renormalise after each step\\ 50 epochs, bf16}{1{,}193{,}392 trainable}{\bchip{master}\bchip{all master baselines}\bchip{CLAP matched}\bchip{CLAP native (linear probe)}}{\achip{w/o ladder}\achip{w/o path}\achip{w/o anchor}\achip{w/o geometry}\achip{CE + geometry only}\achip{init: plain}\achip{init: random orth.}\achip{$\lambda_k\propto N_k^{-1/2}$}\achip{+ pairwise}}
+\end{tikzpicture}
+\end{document}

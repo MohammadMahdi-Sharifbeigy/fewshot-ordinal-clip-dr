@@ -1,0 +1,49 @@
+\section*{مقدمه و نقشهٔ سند}
+\addcontentsline{toc}{section}{مقدمه و نقشهٔ سند}
+\markboth{مقدمه}{مقدمه}
+
+رتینوپاتی دیابتی (\lr{Diabetic Retinopathy, DR}) بر اساس مقیاس بین‌المللی \lr{ICDR} در پنج درجه سنجیده می‌شود: بدون رتینوپاتی، خفیف، متوسط، شدید غیرتکثیری و تکثیری. این درجه‌ها ترتیب دارند. اشتباه گرفتن درجهٔ ۱ با درجهٔ ۲ از نظر بالینی بسیار کم‌هزینه‌تر از اشتباه گرفتن درجهٔ ۰ با درجهٔ ۴ است؛ با این حال بیشتر \lr{classifier}ها درجه‌ها را برچسب‌هایی مستقل می‌بینند و این ساختار را نادیده می‌گیرند. مشکل دوم کمبود داده است: برچسب‌زدن تصویر فوندوس به چشم‌پزشک نیاز دارد و در عمل گاهی فقط چند تصویر برای هر درجه در دسترس است.
+
+مدل‌های بینایی و زبان مانند \lr{CLIP} \cite{clip} برای \lr{regime} \lr{few-shot} مناسب‌اند، چون دانش زبانی‌شان دربارهٔ مفاهیم را می‌توان با چند نمونه به یک مسئلهٔ تازه منتقل کرد. پرسش این پژوهش این است که ترتیب درجه‌ها را کجا و چگونه باید در این فضای مشترک وارد کرد تا مدل با تعداد بسیار کمی تصویر، درجه‌ها را نه‌تنها درست، بلکه با خطاهای «نزدیک» پیش‌بینی کند. \lr{metric} اصلی موفقیت در همهٔ بخش‌ها \lr{Quadratic Weighted Kappa} (\lr{QWK}) است و در کنار آن بررسی می‌شود که در \lr{confusion matrix}، خطاها با دور شدن از قطر اصلی کاهش یابند.
+
+سند در چهار بخش اصلی تنظیم شده است. هر بخش یک مدل کامل است و برای خواندن مستقل نوشته شده؛ اجزای مشترک در بخش~\ref{sec:master} با جزئیات کامل آمده و در بخش‌های بعد، همراه با اعداد کلیدی، خلاصه شده است.
+
+\begin{keybox}[پرسش‌های پژوهش]
+\begin{enumerate}[label=\arabic*.]
+\item آیا ترتیب درجه‌ها، اگر در \lr{prompt}، \lr{loss} و \lr{similarity statistic} با هم وارد شود، در \lr{regime} \lr{few-shot} \lr{QWK} را بهبود می‌دهد؟ (بخش~\ref{sec:master})
+\item آیا اعمال ترتیب مستقیماً روی هندسهٔ \lr{prototype}ها درجه‌ها، به‌جای ورودی \lr{text encoder}، مؤثرتر است؟ (بخش~\ref{sec:d1})
+\item آیا تطبیق خود \lr{text encoder} با توصیف‌های بالینی، همراه با \lr{constraint} ترتیبی روی خروجی آن، نمایش بهتری می‌سازد؟ (بخش~\ref{sec:d2})
+\item آیا نمایش احتمالاتی درجه‌ها، با \lr{concentration} \lr{trainable} برای هر درجه، هم دقت ترتیبی و هم \lr{calibration} را بهبود می‌دهد؟ (بخش~\ref{sec:d3})
+\end{enumerate}
+\end{keybox}
+
+\begin{figure}[H]
+\begin{diagram}
+  \node[datan=6cm] (p) {\textbf{Problem:} Ordinal DR Grading\\ with few images per grade};
+  \node[train=7.2cm,below=of p] (m) {\textbf{Sec.~1 · Master}\\ Ordinal prompt + image LoRA + rank-aware loss + SMS};
+  \node[box=4.3cm,below=12mm of m] (d2) {\textbf{Sec.~3 · Dir.~2}\\ Clinical descs.\ + text LoRA + ordinal constraint on text output};
+  \node[box=4.3cm,left=5mm of d2] (d1) {\textbf{Sec.~2 · Dir.~1}\\ Grade vectors directly in shared space + geometric ordinal constraints};
+  \node[box=4.3cm,right=5mm of d2] (d3) {\textbf{Sec.~4 · Dir.~3}\\ Per-grade vMF distribution + learnable concentration};
+  \node[lossn=9cm,below=12mm of d2] (e) {\textbf{Shared evaluation:} QWK · MAE · ODC · ECE · NLL};
+  \draw[arr] (p) -- (m);
+  \foreach \d in {d1,d2,d3} {\draw[arr] (m.south) -- ++(0,-5mm) -| (\d.north); \draw[arr] (\d.south) -- (\d.south |- e.north);}
+\end{diagram}
+\caption{چهار مدل پژوهش و ارتباط آن‌ها. هر سه جهت بر \lr{image branch}، داده، \lr{protocol} و \lr{metric}های مدل پایه بنا شده‌اند و فقط در نحوهٔ ساختن نمایش متنیِ درجه‌ها تفاوت دارند.}
+\label{fig:overview}
+\end{figure}
+
+\begin{table}[H]
+\caption{چهار مدل در یک نگاه}
+\label{tab:glance}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}l X X r@{}}
+\toprule
+\textbf{مدل} & \textbf{نمایش متنی درجه‌ها از کجا می‌آید} & \textbf{ترتیب کجا اعمال می‌شود} & \textbf{\lr{parameter} \lr{trainable}}\\
+\midrule
+مدل پایه & \lr{prompt} با \lr{context token}ها و رتبهٔ \lr{learnable}، از \lr{text encoder} \lr{frozen} & \lr{interpolation} \lr{rank token}ها، \lr{ranking-aware loss}، \lr{SMS} & \LRE{۱٬۱۹۸٬۰۰۰}\\
+جهت ۱ & پنج بردار آزاد در فضای مشترک، آغازشده از جمله‌های بالینی & \lr{constraint}های \lr{ladder}، \lr{path} و \lr{anchor} روی خود بردارها & \LRE{۱٬۱۹۳٬۳۹۲}\\
+جهت ۲ & میانگین ۵ توصیف بالینی برای هر درجه، از \lr{text encoder} تطبیق‌یافته با \lr{LoRA} & \lr{ladder} روی \lr{prototype}ها، \lr{description ordering}، \lr{anchor} & \LRE{۱٬۲۶۲٬۰۰۰}\\
+جهت ۳ & \lr{von Mises--Fisher distribution} برای هر درجه: \lr{mean direction} و \lr{concentration} & \lr{ladder} و \lr{anchor} روی میانگین‌ها، \lr{overlap} توزیع‌ها & \LRE{۱٬۱۹۳٬۳۹۷}\\
+\bottomrule
+\end{tabularx}
+\end{table}

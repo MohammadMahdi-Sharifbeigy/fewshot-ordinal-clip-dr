@@ -1,0 +1,7 @@
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\protocolfig{AdamW, lr $10^{-4}$, wd $10^{-4}$\\ 5-epoch warm-up, cosine\\ 50 epochs, batch $\min(5k,32)$\\ bf16, grad-clip 1.0}{1{,}198{,}000 trainable}{\bchip{OrdinalCLIP matched}\bchip{OrdinalCLIP official}\bchip{CLIP-DR matched}\bchip{CLIP-DR official}\bchip{L2RCLIP (our impl.)}}{\achip{w/o SMS}\achip{w/o rank loss}\achip{w/o LoRA}\achip{LoRA only (CE)}\achip{+ L2RCLIP parts}}
+\end{tikzpicture}
+\end{document}

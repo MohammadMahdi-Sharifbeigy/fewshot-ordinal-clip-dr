@@ -1,0 +1,136 @@
+% ---------------------------------------------------------------
+% Preamble: page layout, Persian fonts, headings, boxes, diagrams
+% Compile with XeLaTeX (latexmk -xelatex main.tex)
+% ---------------------------------------------------------------
+\usepackage[a4paper,top=2.6cm,bottom=2.6cm,inner=2.4cm,outer=2.4cm,headheight=24pt]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs,tabularx,multirow,array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,shapes.geometric}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{pdflscape}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{figures/}}
+\usepackage{xepersian}   % must be the last package
+
+% ---------- colours ----------
+\definecolor{ink}{HTML}{1D1F22}
+\definecolor{accent}{HTML}{8C3A22}
+\definecolor{accentsoft}{HTML}{F6ECE7}
+\definecolor{navy}{HTML}{23395B}
+\definecolor{navysoft}{HTML}{E8EDF4}
+\definecolor{panel}{HTML}{F4F2EE}
+\definecolor{rulegray}{HTML}{BDB7AE}
+\definecolor{frozen}{HTML}{E3E8EE}
+\definecolor{trainable}{HTML}{F8E6D8}
+\definecolor{lossc}{HTML}{E6F0E3}
+
+% ---------- fonts ----------
+% XB Niloofar: an installed copy is used first, otherwise fonts/XB-Niloofar.ttf next to main.tex.
+% The font has a single weight, so bold and slanted shapes are synthesised.
+\IfFontExistsTF{XB Niloofar}{%
+  \settextfont[AutoFakeBold=1.6,AutoFakeSlant=0.15]{XB Niloofar}%
+}{%
+  \settextfont[Path=fonts/,AutoFakeBold=1.6,AutoFakeSlant=0.15]{XB-Niloofar.ttf}%
+}
+\setlatintextfont[Scale=0.92]{TeX Gyre Termes}
+\setlatinsansfont[Scale=0.9]{TeX Gyre Heros}
+\setlatinmonofont[Scale=0.85]{Latin Modern Mono}
+\linespread{1.45}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+% ---------- headings ----------
+\titleformat{\section}[block]
+  {\color{navy}\LARGE\bfseries}
+  {\colorbox{navy}{\color{white}\,\thesection\,}}{0.6em}{}
+  [\vspace{2pt}{\color{accent}\titlerule[1.2pt]}]
+\titleformat{\subsection}
+  {\color{navy}\Large\bfseries}{\color{accent}\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\color{ink}\large\bfseries}{\color{accent}\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{2.2em}{1.2em}
+\titlespacing*{\subsection}{0pt}{1.6em}{0.6em}
+\titlespacing*{\subsubsection}{0pt}{1.2em}{0.4em}
+\newcommand{\sectionbreak}{\clearpage}
+
+% ---------- header and footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small\color{navy} \lr{Few-Shot Ordinal-Aware CLIP for Diabetic Retinopathy Grading}}
+\fancyfoot[C]{\small\color{navy}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{{\color{rulegray}\hrule width\headwidth height\headrulewidth}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\color{navy}\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---------- captions, numbering ----------
+\captionsetup{font=small,labelfont={bf,color=navy},labelsep=colon,skip=6pt}
+\captionsetup[table]{position=top}
+\numberwithin{equation}{section}
+\renewcommand{\arraystretch}{1.3}
+\setlist{itemsep=2pt,topsep=4pt}
+
+% ---------- boxes ----------
+\newtcolorbox{notebox}[1][]{enhanced,colback=accentsoft,colframe=accent,
+  boxrule=0pt,leftrule=0pt,rightrule=3pt,arc=2pt,sharp corners=west,
+  fonttitle=\bfseries,coltitle=accent,attach title to upper={\ \ },title={#1},
+  left=10pt,right=10pt,top=6pt,bottom=6pt}
+\newtcolorbox{keybox}[1][]{enhanced,breakable,colback=navysoft,colframe=navy,
+  boxrule=0.6pt,arc=3pt,fonttitle=\bfseries,title={#1},
+  left=10pt,right=10pt,top=6pt,bottom=6pt}
+
+% ---------- diagram styles ----------
+\tikzset{
+  >={Stealth[length=2.4mm]},
+  every node/.style={font=\small},
+  box/.style={draw=navy!70,rounded corners=3pt,fill=white,align=center,inner sep=4pt,
+              text width=#1,minimum height=8mm},
+  box/.default=3.4cm,
+  frozen/.style={box=#1,fill=frozen},
+  frozen/.default=3.4cm,
+  train/.style={box=#1,fill=trainable,draw=accent!80},
+  train/.default=3.4cm,
+  lossn/.style={box=#1,fill=lossc,draw=green!40!black},
+  lossn/.default=3.4cm,
+  datan/.style={box=#1,fill=panel,draw=rulegray},
+  datan/.default=3.4cm,
+  decision/.style={diamond,aspect=2.2,draw=accent,fill=accentsoft,align=center,inner sep=1pt,font=\small},
+  arr/.style={->,draw=navy!80,thick},
+  darr/.style={->,draw=accent!80,thick,dashed},
+  group/.style={draw=rulegray,dashed,rounded corners=6pt,inner sep=8pt,fill=panel!50},
+  grouplabel/.style={font=\footnotesize\bfseries,text=navy,fill=white,inner sep=2pt},
+  elabel/.style={font=\footnotesize,fill=white,inner sep=1pt},
+}
+\newenvironment{diagram}[1][]{%
+  \begin{center}%
+  \begin{latin}%
+  \begin{tikzpicture}[node distance=7mm and 8mm,#1]%
+}{%
+  \end{tikzpicture}%
+  \end{latin}%
+  \end{center}%
+}
+
+% legend shown under architecture figures
+\newcommand{\archlegend}{%
+  \par\smallskip\centering\footnotesize
+  \begin{latin}%
+  \tikz\node[frozen=1.6cm,minimum height=4mm]{Frozen};\quad
+  \tikz\node[train=1.8cm,minimum height=4mm]{Trainable};\quad
+  \tikz\node[lossn=1.6cm,minimum height=4mm]{Loss};\quad
+  \tikz\node[datan=2.4cm,minimum height=4mm]{Data / Output};\par
+  \end{latin}}
+
+% ---------- small helpers ----------
+\newcommand{\en}[1]{\lr{#1}}                 % inline Latin text
+\newcommand{\code}[1]{\lr{\texttt{#1}}}      % inline code or identifiers
+\newcommand{\branch}[1]{\lr{\texttt{#1}}}    % git branch names
+\newcommand{\ensent}[1]{\begin{latin}\raggedright\small #1\end{latin}}% Latin sentence in a table cell
+\newcolumntype{C}{>{\centering\arraybackslash}X}

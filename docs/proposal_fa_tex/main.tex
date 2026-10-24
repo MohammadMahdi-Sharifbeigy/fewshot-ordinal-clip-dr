@@ -1,0 +1,59 @@
+\documentclass[a4paper,11pt]{article}
+\input{preamble}
+
+\begin{document}
+
+% ================= title page =================
+\begin{titlepage}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[navy] (current page.north west) rectangle ([yshift=-7.2cm]current page.north east);
+  \fill[accent] ([yshift=-7.2cm]current page.north west) rectangle ([yshift=-7.45cm]current page.north east);
+  \node[anchor=north,text width=16cm,align=center,text=white,font=\Huge\bfseries] at ([yshift=-2.3cm]current page.north)
+    {\lr{Few-Shot Ordinal-Aware CLIP}\\[6pt] \lr{for Diabetic Retinopathy Grading}};
+\end{tikzpicture}
+\vspace*{7.2cm}
+
+\begin{center}
+{\large یک مدل پایه و سه جهت پژوهشی برای یادگیری نمایش ترتیبیِ درجه‌های بیماری\\ در فضای مشترک تصویر و متن\par}
+\vspace{1.4cm}
+
+\begin{latin}
+\begin{tikzpicture}[node distance=4mm]
+  \node[train=3.2cm,minimum height=13mm] (m) {\textbf{Master Model}\\ \footnotesize Ordinal prompt + SMS};
+  \node[box=3.2cm,minimum height=13mm,below=12mm of m] (d2) {\textbf{Direction 2}\\ \footnotesize Text encoder LoRA};
+  \node[box=3.2cm,minimum height=13mm,left=6mm of d2] (d1) {\textbf{Direction 1}\\ \footnotesize Ordinal geometry};
+  \node[box=3.2cm,minimum height=13mm,right=6mm of d2] (d3) {\textbf{Direction 3}\\ \footnotesize Probabilistic grades};
+  \draw[arr] (m.south) -- ++(0,-5mm) -| (d1.north);
+  \draw[arr] (m.south) -- (d2.north);
+  \draw[arr] (m.south) -- ++(0,-5mm) -| (d3.north);
+\end{tikzpicture}
+\end{latin}
+
+\vfill
+\begin{tabular}{rl}
+\textbf{مجموعه‌داده:} & \lr{DeepDRiD} (تصاویر فوندوس معمولی)\\
+\textbf{مخزن کد:} & \branch{fewshot-ordinal-clip-dr}\\
+\textbf{شاخه‌ها:} & \branch{master}، \branch{direction1-ordinal-geometry}\\
+ & \branch{direction2-ordinal-text-lora}، \branch{direction3-probabilistic-ordinal}\\
+\textbf{معیار اصلی:} & \lr{Quadratic Weighted Kappa (QWK)} و افت خطا با فاصله از قطر\\
+\end{tabular}
+\vspace{1cm}
+\end{center}
+\end{titlepage}
+
+\pagenumbering{alph}
+\tableofcontents
+\clearpage
+\listoffigures
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+\input{sections/s0_intro}
+\input{sections/s1_master}
+\input{sections/s2_direction1}
+\input{sections/s3_direction2}
+\input{sections/s4_direction3}
+\input{sections/s5_refs}
+
+\end{document}

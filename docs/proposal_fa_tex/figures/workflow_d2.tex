@@ -1,0 +1,66 @@
+% Full workflow of Direction 2: clinical descriptions + LoRA on the CLIP text encoder + ordinal constraints on its output.
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\legend
+
+% ---------------- (a) model ----------------
+\panel{6.0}{2.6}{17.8}{14.6}{(a)}{Ordinal text-encoder adaptation (Direction 2)}
+\imagebranch
+\simmatrix{$S=100\,z\,T^{\top}$,\ \ $B\times5$}
+
+% descriptions
+\node[sbox,text width=2.6cm,align=left] (desc) at (7.75,8.6) {\textbf{25 clinical descriptions}\\[1pt] 5 per grade: ICDR sentence, 2--3 fundus findings, level name};
+% text encoder with LoRA
+\node[frz,minimum width=3.2cm,minimum height=2.9cm] (tenc) at (11.05,8.6) {};
+\node[btitle] at (11.05,9.75) {CLIP text encoder};
+\node[note] at (11.05,9.4) {12 layers, frozen};
+\node[trn,text width=2.7cm] (tl) at (11.05,8.35) {\textbf{LoRA on $q,k,v$}\\ $r{=}2$, $\alpha{=}1$, dropout 0.25\\ 73{,}728 params};
+\node[note] at (11.05,7.45) {$B{=}0$ at start $\Rightarrow$ exact CLIP};
+\draw[arr] (desc.east) -- (tenc.west);
+% description embeddings: 5 x 5 grid coloured by grade
+\foreach \k/\c in {0/g0,1/g1,2/g2,3/g3,4/g4}
+  \foreach \m in {0,...,4} \fill[\c!75!white,draw=white] (13.25+0.27*\m,9.55-0.27*\k) rectangle ++(0.27,-0.27);
+\node[note] at (13.92,8.0) {$e_{k,m}$, $\ell_2$-norm};
+\draw[arr] (tenc.east) -- (13.2,8.85);
+\draw[arr] (14.65,8.85) -- (15.2,8.85);
+\node[note] at (14.93,9.25) {mean};
+\foreach \k/\c in {0/g0,1/g1,2/g2,3/g3,4/g4} \fill[\c!80!white,draw=white] (15.3+0.38*\k,8.15) rectangle ++(0.34,1.45);
+\node[note] at (16.2,7.85) {$t_k=\mathrm{norm}\big(\frac15\sum_m e_{k,m}\big)$};
+\draw[arr] (16.2,9.65) -- (16.2,11.05);
+% description-prototype similarity
+\node[outb,text width=4.6cm] (Sd) at (13.95,6.35) {$S^{d}=100\,E\,T^{\top}$,\ \ $25\times5$\\ \scriptsize each description vs.\ every prototype};
+\draw[arr] (13.92,7.75) -- (Sd.north);
+\node[blk,text width=3.0cm] (anc) at (8.1,6.35) {zero-shot prototypes $t^{0}_k$ ($B{=}0$), cached as anchors};
+\draw[darr] (10.2,7.15) |- (anc.east);
+\node[note,anchor=west] at (6.35,5.25) {prototypes are recomputed every training step and cached once per evaluation pass};
+\gradeaxis{the adapted text encoder itself orders the grades}
+
+% ---------------- (b) objective ----------------
+\panel{18.1}{2.6}{25.8}{14.6}{(b)}{Objective, constraints, output}
+\node[blk,minimum width=7.3cm,minimum height=4.75cm] (obj) at (21.95,11.55) {};
+\node[btitle] at (21.95,13.58) {Training objective (support set), all weights 1};
+\node[fill=ink!5,rounded corners=2pt,minimum width=6.9cm,minimum height=7mm,font=\footnotesize] at (21.95,13.03)
+  {$\mathcal{L}=\mathcal{L}_{\mathrm{CE}}+\mathcal{L}_{\mathrm{rank}}+\mathcal{L}_{\mathrm{ladder}}+\mathcal{L}_{\mathrm{desc}}+\mathcal{L}_{\mathrm{anchor}}$};
+\node[anchor=north west,font=\scriptsize,inner sep=0pt] at (18.5,12.55) {\renewcommand{\arraystretch}{1.25}\begin{tabular}{@{}L{1.45cm}L{5.5cm}@{}}
+  $\mathcal{L}_{\mathrm{CE}},\mathcal{L}_{\mathrm{rank}}$ & on $\tilde S$ (SMS-calibrated), as in master\\
+  \textbf{ladder} & on the encoder outputs $t_k$ ($m=0.05$, $d=1-\cos$)\\
+  \textbf{desc} & each description closest to its own grade, similarity falling with grade distance\\
+  & $\mathcal{L}_{\mathrm{CE}}(S^{d},y^{d})+\mathcal{L}_{\mathrm{rank}}(S^{d},y^{d})$\\
+  \textbf{anchor} & $\sum_k 2\big(1-t_k^{\top}t^{0}_k\big)$ to the zero-shot prototypes\\
+\end{tabular}};
+\node[stat,minimum width=7.3cm,minimum height=1.6cm] (sms) at (21.95,8.2) {};
+\node[btitle] at (21.95,8.7) {SMS (training only), as in master};
+\node[font=\scriptsize] at (21.95,8.05) {per-grade similarity statistics, momentum 0.9, Gaussian kernel};
+\node[font=\scriptsize] at (21.95,7.65) {over grades; $\tilde S$ feeds $\mathcal{L}_{\mathrm{CE}}$ and $\mathcal{L}_{\mathrm{rank}}$};
+\node[blk,minimum width=7.3cm,minimum height=1.6cm] (diag) at (21.95,6.5) {};
+\node[btitle] at (21.95,7.0) {Optimisation and diagnostics};
+\node[font=\scriptsize,align=center] at (21.95,6.38) {text LoRA in its own AdamW group (lr $10^{-4}$)\\ distance matrix, ladder, anchor drift, description spread};
+\draw[arr] (S.east) -- ++(0.35,0) |- (obj.west);
+\draw[arr] (sms.north) -- node[right,font=\scriptsize]{$\tilde S$} (obj.south);
+\draw[arr] (Sd.east) -- (17.95,6.35) |- ([yshift=-12mm]obj.west);
+\evalbox{$\hat y=\arg\max_j\ \mathrm{softmax}(S)_j$}
+
+\end{tikzpicture}
+\end{document}

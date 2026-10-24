@@ -1,0 +1,77 @@
+\section*{\lr{metric} موفقیت و جمع‌بندی}
+\addcontentsline{toc}{section}{\lr{metric} موفقیت و جمع‌بندی}
+
+\begin{keybox}[\lr{metric} موفقیت در هر چهار بخش]
+مدلی برتر شمرده می‌شود که در میانگین سه \lr{seed}، \lr{QWK} بالاتری در \lr{regime}های \lr{few-shot} داشته باشد و هم‌زمان در \lr{confusion matrix}‌اش خطاها با دور شدن از قطر کاهش یابند (\lr{ODC} نزدیک به ۱ و \lr{error mass} نزولی بر حسب فاصله). برای جهت ۳، کاهش \lr{ECE} و \lr{NLL} بدون افت \lr{QWK} شرط لازم ادعای \lr{calibration} است.
+\end{keybox}
+
+\begin{table}[H]
+\caption{مقایسهٔ چهار مدل از نظر اجزا}
+\label{tab:summary}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}p{3.6cm} C C C C@{}}
+\toprule
+\textbf{جزء} & \textbf{مدل پایه} & \textbf{جهت ۱} & \textbf{جهت ۲} & \textbf{جهت ۳}\\
+\midrule
+\lr{LoRA} تصویر ($r=16$) & دارد & دارد & دارد & دارد\\
+نمایش درجه & \lr{prompt} رتبه‌ای & بردار آزاد & میانگین توصیف‌ها & توزیع \lr{vMF}\\
+\lr{text encoder} در آموزش & \lr{frozen}، هر گام & فقط مقداردهی & \lr{LoRA}، هر گام & فقط مقداردهی\\
+\lr{CE} + \lr{loss} رتبه & دارد & دارد & دارد & دارد (روی \lr{logit} \lr{vMF})\\
+\lr{SMS} & دارد & دارد & دارد & ندارد\\
+\lr{ladder} / \lr{anchor} & ندارد & دارد / دارد & دارد / دارد & دارد / دارد\\
+\lr{smooth path} & ندارد & دارد & ندارد & ندارد\\
+\lr{constraint} ویژه & \lr{interpolation} توکن & مسیر & \lr{description ordering} & \lr{prior} $\kappa$\\
+\lr{parameter} \lr{trainable} & \LRE{۱٬۱۹۸٬۰۰۰} & \LRE{۱٬۱۹۳٬۳۹۲} & \LRE{۱٬۲۶۲٬۰۰۰} & \LRE{۱٬۱۹۳٬۳۹۷}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{واژه‌نامه}
+\addcontentsline{toc}{section}{واژه‌نامه}
+\begin{table}[H]
+\caption{معادل‌های به‌کاررفته در سند}
+\label{tab:glossary}
+\centering\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{اصطلاح فارسی} & \textbf{معادل انگلیسی}\\
+\midrule
+رژیم کم‌نمونه & \lr{few-shot regime}\\
+مجموعهٔ پشتیبان / پرس‌وجو & \lr{support / query set}\\
+نمونهٔ اولیه & \lr{prototype}\\
+توکن بافت / توکن رتبه & \lr{context token / rank token}\\
+تطبیق کم‌رتبه & \lr{low-rank adaptation (LoRA)}\\
+زیان آگاه از رتبه & \lr{ranking-aware loss}\\
+هموارسازی ماتریس شباهت & \lr{similarity matrix smoothing (SMS)}\\
+زیان دوتایی وزن‌دار با فاصله & \lr{distance-weighted pairwise loss}\\
+کاپای وزنی درجه‌دوم & \lr{quadratic weighted kappa (QWK)}\\
+سازگاری افت ترتیبی & \lr{ordinal decay consistency (ODC)}\\
+خطای کالیبراسیون مورد انتظار & \lr{expected calibration error (ECE)}\\
+لگاریتم درست‌نمایی منفی & \lr{negative log-likelihood (NLL)}\\
+توزیع فون‌میزس-فیشر / تمرکز & \lr{von Mises--Fisher distribution / concentration}\\
+بسط مجانبی یکنواخت & \lr{uniform asymptotic (Debye) expansion}\\
+آزمایش حذفی & \lr{ablation study}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\addcontentsline{toc}{section}{منابع}
+\begin{latin}
+\renewcommand{\refname}{References}
+\begin{thebibliography}{99}
+\bibitem{clip} A. Radford et al. Learning transferable visual models from natural language supervision. In \emph{ICML}, 2021.
+\bibitem{ordinalclip} W. Li et al. OrdinalCLIP: Learning rank prompts for language-guided ordinal regression. In \emph{NeurIPS}, 2022.
+\bibitem{clipdr} Q. Yu et al. CLIP-DR: Textual knowledge-guided diabetic retinopathy grading with ranking-aware prompting. In \emph{MICCAI}, 2024.
+\bibitem{l2rclip} R. Wang et al. Learning-to-rank meets language: Boosting language-driven ordering alignment for ordinal classification. In \emph{NeurIPS}, 2023.
+\bibitem{clap} J. Silva-Rodr\'iguez, S. Hajimiri, I. Ben Ayed, J. Dolz. A closer look at the few-shot adaptation of large vision-language models. In \emph{CVPR}, 2024.
+\bibitem{cliplora} M. Zanella, I. Ben Ayed. Low-rank few-shot adaptation of vision-language models. In \emph{CVPR Workshops}, 2024.
+\bibitem{lora} E. J. Hu et al. LoRA: Low-rank adaptation of large language models. In \emph{ICLR}, 2022.
+\bibitem{fds} Y. Yang et al. Delving into deep imbalanced regression. In \emph{ICML}, 2021.
+\bibitem{cupl} S. Pratt et al. What does a platypus look like? Generating customized prompts for zero-shot image classification. In \emph{ICCV}, 2023.
+\bibitem{poe} W. Li et al. Learning probabilistic ordinal embeddings for uncertainty-aware regression. In \emph{CVPR}, 2021.
+\bibitem{icdr} C. P. Wilkinson et al. Proposed international clinical diabetic retinopathy and diabetic macular edema disease severity scales. \emph{Ophthalmology}, 110(9), 2003.
+\bibitem{dlmf} NIST Digital Library of Mathematical Functions, \S10.41: Asymptotic expansions for large order.
+\bibitem{deepdrid} R. Liu et al. DeepDRiD: Diabetic retinopathy---grading and image quality estimation challenge. \emph{Patterns}, 3(6), 2022.
+\end{thebibliography}
+\end{latin}

@@ -1,0 +1,71 @@
+% Full workflow of the master model (OrdinalCLIP rank prompts + image LoRA + ranking-aware loss + SMS).
+% Build: xelatex workflow_master.tex   (run inside figures/)
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\legend
+
+% ---------------- (a) model ----------------
+\panel{6.0}{2.6}{17.8}{14.6}{(a)}{Ordinal-aware CLIP model (master)}
+\imagebranch
+\simmatrix{$S=100\,z\,T^{\top}$,\ \ $B\times5$}
+
+% text branch: OrdinalCLIP rank prompt learner
+\node[trn,minimum width=6.9cm,minimum height=4.0cm] (pl) at (9.75,8.55) {};
+\node[btitle] at (9.75,10.3) {Rank prompt learner (OrdinalCLIP interpolation)};
+\node[note] at (7.65,9.95) {3 base rank tokens};
+\foreach \b in {0,1,2} \node[tok,fill=trndk,text=white] (b\b) at (6.95+0.7*\b,9.4) {$\beta_{\b}$};
+\node[note] at (7.65,8.85) {positions $\pi=(0,2,4)$};
+\draw[arr] (8.75,9.4) -- (9.15,9.4);
+\foreach \r/\row in {0/{67,33,0},1/{43,43,14},2/{25,50,25},3/{14,43,43},4/{0,33,67}}
+  \foreach \v [count=\c from 0] in \row {\fill[trndk!\v!white,draw=white] (9.2+0.27*\c,9.95-0.22*\r) rectangle ++(0.27,-0.22);}
+\node[note] at (9.6,8.65) {$W_{kb}$ (linear)};
+\draw[arr] (10.05,9.4) -- (10.45,9.4);
+\foreach \k in {0,...,4} \node[tok,fill=trndk,text=white,minimum width=4.6mm] (r\k) at (10.75+0.5*\k,9.4) {$r_{\k}$};
+\node[note] at (11.75,9.95) {$r_k=\sum_b W_{kb}\,\beta_b$};
+% prompt row
+\node[tok,fill=tokgray,minimum width=8mm] (sos) at (7.1,7.55) {\textbf{SOS}};
+\foreach \c/\l in {1/{c_1},2/{c_2}} \node[tok,fill=trnlt] at (7.25+0.68*\c,7.55) {$\l$};
+\node at (9.25,7.55) {$\cdots$};
+\node[tok,fill=trnlt,minimum width=7mm] at (9.95,7.55) {$c_{16}$};
+\node[tok,fill=trndk,text=white,minimum width=7mm] (rk) at (10.75,7.55) {$r_k$};
+\node[tok,fill=tokgray,minimum width=8mm] (eos) at (11.6,7.55) {\textbf{EOS}};
+\draw[arr] (r2.south) -- ++(0,-0.45) -| (rk.north);
+\node[note] at (9.75,6.85) {prompt $P_k$: 16 shared context tokens + rank token $r_k$};
+\draw[arr] (13.2,8.55) -- (13.6,8.55);
+\node[frz,text width=1.35cm,minimum height=2.2cm] (tenc) at (14.35,8.55) {\textbf{CLIP text encoder}\\[2pt] \scriptsize frozen\\ 12 layers\\ width 512};
+\draw[arr] (tenc.east) -- (15.45,8.55);
+\foreach \k/\c in {0/20,1/38,2/56,3/74,4/92} \fill[trndk!\c!white,draw=white] (15.5+0.38*\k,7.75) rectangle ++(0.34,1.6);
+\node[note] at (16.4,7.35) {$t_0,\dots,t_4\in\mathbb{R}^{1024}$};
+\node[note] at (16.4,7.0) {grade prototypes};
+\draw[arr] (16.4,9.45) -- (16.4,11.2);
+\node[note,anchor=west] at (6.35,5.75) {trainable text parameters: $16\times512$ context + $3\times512$ base = 9{,}728;\quad logit scale fixed at 100};
+\node[note,anchor=west] at (6.35,5.35) {context tokens initialised $\mathcal{N}(0,0.02^2)$;\quad prototypes and $z$ are $\ell_2$-normalised};
+\gradeaxis{neighbouring grades share base tokens, so their prompts stay close}
+
+% ---------------- (b) objective, calibration, output ----------------
+\panel{18.1}{2.6}{25.8}{14.6}{(b)}{Objective, calibration, output}
+\node[blk,minimum width=7.3cm,minimum height=3.45cm] (obj) at (21.95,12.2) {};
+\node[btitle] at (21.95,13.65) {Training objective (support set)};
+\node[fill=ink!5,rounded corners=2pt,minimum width=6.9cm,minimum height=7mm,font=\small] at (21.95,13.05)
+  {$\mathcal{L}=\mathcal{L}_{\mathrm{CE}}(\tilde S,y)+\lambda\,\mathcal{L}_{\mathrm{rank}}(\tilde S,y),\quad \lambda=1$};
+\node[anchor=north west,font=\scriptsize,inner sep=0pt] at (18.5,12.55) {\renewcommand{\arraystretch}{1.25}\begin{tabular}{@{}L{1.55cm}L{5.3cm}@{}}
+  $\mathcal{L}_{\mathrm{CE}}$ & cross-entropy over the five grades\\
+  $\mathcal{L}_{\mathrm{rank}}$ & logistic loss on adjacent grade pairs; similarity falls monotonically away from $y$ on both sides (unimodal), $\tau=1$\\
+  & {\itshape\color{ink!55} following CLIP-DR [Yu et al., 2024]}\\
+\end{tabular}};
+\node[stat,minimum width=7.3cm,minimum height=3.95cm] (sms) at (21.95,8.0) {};
+\node[btitle] at (21.95,9.7) {Similarity matrix smoothing (SMS)};
+\node[cite] at (21.95,9.3) {training only $\cdot$ FDS form [Yang et al., 2021; Yu et al., 2024]};
+\node[anchor=west,text width=6.9cm,align=left,font=\scriptsize] at (18.5,8.35)
+  {\textbf{each epoch:} per-grade mean $\mu_j$ and variance $\Sigma_j$ of the similarity rows\\[2pt]
+   \textbf{epoch end:} momentum 0.9, Gaussian kernel $G$ over grades (size 5, $\sigma=2$)};
+\node[anchor=west,font=\footnotesize,align=left] at (18.5,7.15) {$\tilde\mu=G\mu,\quad \tilde\Sigma=G\Sigma$\\[3pt] $\tilde s_b=(s_b-\mu_{y_b})\odot\sqrt{\mathrm{clip}(\tilde\Sigma_{y_b}/\Sigma_{y_b},\,0.5,\,2)}+\tilde\mu_{y_b}$};
+\node[anchor=west,font=\scriptsize] at (18.5,6.35) {\textbf{inference:} raw $S$ (calibration needs the label)};
+\draw[arr] (S.east) -- ++(0.35,0) |- (sms.west);
+\draw[arr] (sms.north) -- node[right,font=\scriptsize]{$\tilde S$} (obj.south);
+\evalbox{$\hat y=\arg\max_j\ \mathrm{softmax}(S)_j$}
+
+\end{tikzpicture}
+\end{document}

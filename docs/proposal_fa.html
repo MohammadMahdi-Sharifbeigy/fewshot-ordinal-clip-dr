@@ -1,0 +1,714 @@
+<title>درجه‌بندی ترتیبی رتینوپاتی</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column with a numbered table of contents; formulas and diagrams in LTR blocks */
+:root {
+  --paper: #fbfaf8;
+  --ink: #1d1f22;
+  --muted: #5b6168;
+  --rule: #e2ded8;
+  --accent: #8c3a22;
+  --accent-soft: #f4e8e2;
+  --panel: #f3f1ee;
+  --code: #3c4a57;
+  --font-body: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #17191c; --ink: #e8e6e3; --muted: #a3a9b0; --rule: #33373c;
+    --accent: #e0896b; --accent-soft: #33241f; --panel: #202327; --code: #b9c7d4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #17191c; --ink: #e8e6e3; --muted: #a3a9b0; --rule: #33373c;
+  --accent: #e0896b; --accent-soft: #33241f; --panel: #202327; --code: #b9c7d4;
+  color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.9; }
+.doc {
+  max-width: 860px; margin-inline: auto;
+  padding-block: 40px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3, h4 { line-height: 1.5; text-wrap: balance; font-weight: 800; }
+h1 { font-size: 2rem; margin: 0 0 8px; }
+h2 { font-size: 1.55rem; margin: 64px 0 12px; padding-block-start: 20px; border-block-start: 2px solid var(--ink); }
+h3 { font-size: 1.22rem; margin: 40px 0 8px; font-weight: 700; }
+h4 { font-size: 1.05rem; margin: 26px 0 6px; font-weight: 700; color: var(--muted); }
+h2 .num, h3 .num, h4 .num { color: var(--accent); margin-inline-end: 8px; font-variant-numeric: tabular-nums; }
+p { margin: 0 0 14px; }
+.lede { font-size: 1.08rem; color: var(--muted); max-width: 70ch; }
+.meta bdi { white-space: nowrap; }
+.meta { color: var(--muted); font-size: .9rem; margin-block-end: 28px; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, .ltr-code { font-family: var(--font-mono); font-size: .86em; color: var(--code); background: var(--panel); padding: 1px 6px; border-radius: 4px; direction: ltr; unicode-bidi: isolate; }
+ul, ol { padding-inline-start: 1.6em; margin: 0 0 14px; }
+li { margin-block-end: 4px; }
+ol.fa { list-style-type: persian; }
+nav.toc { background: var(--panel); border-radius: 8px; padding: 18px 22px; margin-block: 24px 8px; }
+nav.toc h2 { margin: 0 0 8px; padding: 0; border: 0; font-size: 1.1rem; }
+nav.toc ol { margin: 0; list-style: none; padding-inline-start: 0; }
+nav.toc ol ol { padding-inline-start: 1.4em; font-size: .94rem; }
+nav.toc li { margin: 2px 0; }
+nav.toc a { color: var(--ink); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+.eq { direction: ltr; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; margin: 14px 0 18px; padding: 10px 14px; background: var(--panel); border-radius: 6px; overflow-x: auto; }
+.eq .tag { direction: rtl; color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.eq math { font-size: 1.12em; }
+figure { margin: 22px 0 26px; }
+figure .diagram { direction: ltr; overflow-x: auto; background: var(--panel); border-radius: 8px; padding: 14px; }
+figure .diagram pre.mermaid { margin: 0; background: transparent; text-align: center; font-family: var(--font-body); }
+figcaption { color: var(--muted); font-size: .9rem; margin-block-start: 8px; }
+figcaption b { color: var(--ink); }
+.table-wrap { overflow-x: auto; margin: 6px 0 24px; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; font-variant-numeric: tabular-nums; }
+caption { caption-side: top; text-align: start; color: var(--muted); font-size: .9rem; padding-block-end: 6px; }
+caption b { color: var(--ink); }
+th, td { border-block-end: 1px solid var(--rule); padding: 8px 10px; text-align: start; vertical-align: top; }
+thead th { border-block-end: 2px solid var(--ink); font-weight: 700; white-space: nowrap; }
+td.ltr, th.ltr { direction: ltr; text-align: left; }
+.note { border-inline-start: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 16px; border-radius: 0 6px 6px 0; margin: 16px 0 20px; }
+.note p:last-child { margin: 0; }
+.sentences { direction: ltr; text-align: left; font-family: var(--font-mono); font-size: .8rem; line-height: 1.6; color: var(--code); }
+.grade { white-space: nowrap; font-weight: 700; }
+@media (max-width: 520px) { h1 { font-size: 1.6rem; } h2 { font-size: 1.3rem; } body { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+<div class="doc" dir="rtl" lang="fa">
+
+<header>
+<h1>درجه‌بندی ترتیبی رتینوپاتی دیابتی با CLIP در رژیم کم‌نمونه</h1>
+<p class="lede">سند روش‌شناسی برای پیشنهادهٔ پژوهشی: یک مدل پایه و سه جهت پژوهشی برای یادگیری نمایش ترتیبیِ درجه‌های بیماری در فضای مشترک تصویر و متن.</p>
+<p class="meta">مخزن کد: <bdi>fewshot-ordinal-clip-dr</bdi> · شاخه‌ها: <bdi>master</bdi>، <bdi>direction1-ordinal-geometry</bdi>، <bdi>direction2-ordinal-text-lora</bdi>، <bdi>direction3-probabilistic-ordinal</bdi></p>
+</header>
+
+<nav class="toc" aria-label="فهرست مطالب">
+<h2>فهرست مطالب</h2>
+<ol>
+<li><a href="#intro">مقدمه و نقشهٔ سند</a></li>
+<li><a href="#s1"><span class="num">۱.</span> مدل پایه (شاخهٔ master)</a>
+<ol>
+<li><a href="#s1-1">۱.۱ مسئله و ایدهٔ مدل</a></li>
+<li><a href="#s1-2">۱.۲ داده و پروتکل کم‌نمونه</a></li>
+<li><a href="#s1-3">۱.۳ پیش‌پردازش و افزایش داده</a></li>
+<li><a href="#s1-4">۱.۴ معماری و بلوک‌های مدل</a></li>
+<li><a href="#s1-5">۱.۵ توابع هزینه</a></li>
+<li><a href="#s1-6">۱.۶ آموزش و بهینه‌سازی</a></li>
+<li><a href="#s1-7">۱.۷ ارزیابی و معیارها</a></li>
+<li><a href="#s1-8">۱.۸ مدل‌های مقایسه و آزمایش‌های حذفی</a></li>
+<li><a href="#s1-9">۱.۹ گردش کار آزمایش‌ها</a></li>
+</ol></li>
+<li><a href="#s2"><span class="num">۲.</span> جهت ۱: هندسهٔ ترتیبی مستقیم</a><ol><li><a href="#s2-1"><span class="num">۲.۱</span> انگیزه و شکاف پژوهشی</a></li><li><a href="#s2-2"><span class="num">۲.۲</span> تفاوت با مدل پایه</a></li><li><a href="#s2-3"><span class="num">۲.۳</span> معماری</a></li><li><a href="#s2-4"><span class="num">۲.۴</span> مقداردهی اولیهٔ بردارهای درجه</a></li><li><a href="#s2-5"><span class="num">۲.۵</span> قیدهای هندسی ترتیبی</a></li><li><a href="#s2-6"><span class="num">۲.۶</span> تابع هزینهٔ کل</a></li><li><a href="#s2-7"><span class="num">۲.۷</span> بهینه‌سازی</a></li><li><a href="#s2-8"><span class="num">۲.۸</span> داده، ارزیابی و تشخیص‌های هندسی</a></li><li><a href="#s2-9"><span class="num">۲.۹</span> مدل‌های مقایسه و آزمایش‌های حذفی</a></li></ol></li>
+<li><a href="#s3"><span class="num">۳.</span> جهت ۲: تطبیق کم‌رتبهٔ رمزگذار متن</a><ol><li><a href="#s3-1"><span class="num">۳.۱</span> انگیزه و شکاف پژوهشی</a></li><li><a href="#s3-2"><span class="num">۳.۲</span> تفاوت با مدل پایه</a></li><li><a href="#s3-3"><span class="num">۳.۳</span> معماری</a></li><li><a href="#s3-4"><span class="num">۳.۴</span> توصیف‌های بالینی</a></li><li><a href="#s3-5"><span class="num">۳.۵</span> تطبیق کم‌رتبهٔ رمزگذار متن</a></li><li><a href="#s3-6"><span class="num">۳.۶</span> قیدهای ترتیبی روی خروجی متن</a></li><li><a href="#s3-7"><span class="num">۳.۷</span> آموزش، داده و ارزیابی</a></li><li><a href="#s3-8"><span class="num">۳.۸</span> مدل‌های مقایسه و آزمایش‌های حذفی</a></li></ol></li>
+<li><a href="#s4"><span class="num">۴.</span> جهت ۳: نمایش احتمالاتی درجه‌ها</a><ol><li><a href="#s4-1"><span class="num">۴.۱</span> انگیزه و شکاف پژوهشی</a></li><li><a href="#s4-2"><span class="num">۴.۲</span> مدل فون‌میزس-فیشر برای هر درجه</a></li><li><a href="#s4-3"><span class="num">۴.۳</span> امتیازدهی: پسین آمیختهٔ vMF</a></li><li><a href="#s4-4"><span class="num">۴.۴</span> محاسبهٔ پایدار تابع بسل</a></li><li><a href="#s4-5"><span class="num">۴.۵</span> معماری</a></li><li><a href="#s4-6"><span class="num">۴.۶</span> توابع هزینه</a></li><li><a href="#s4-7"><span class="num">۴.۷</span> بهینه‌سازی</a></li><li><a href="#s4-8"><span class="num">۴.۸</span> داده، ارزیابی و تمرکز بر کالیبراسیون</a></li><li><a href="#s4-9"><span class="num">۴.۹</span> مدل‌های مقایسه و آزمایش‌های حذفی</a></li></ol></li>
+<li><a href="#refs">منابع و واژه‌نامه</a></li>
+</ol>
+</nav>
+
+<section id="intro">
+<h2>مقدمه و نقشهٔ سند</h2>
+<p>رتینوپاتی دیابتی (Diabetic Retinopathy, DR) بر اساس مقیاس بین‌المللی ICDR در پنج درجه سنجیده می‌شود: بدون رتینوپاتی، خفیف، متوسط، شدید غیرتکثیری و تکثیری. این درجه‌ها ترتیب دارند. اشتباه گرفتن درجهٔ ۱ با درجهٔ ۲ از نظر بالینی بسیار کم‌هزینه‌تر از اشتباه گرفتن درجهٔ ۰ با درجهٔ ۴ است؛ با این حال بیشتر طبقه‌بندها درجه‌ها را برچسب‌هایی مستقل می‌بینند و این ساختار را نادیده می‌گیرند. مشکل دوم کمبود داده است: برچسب‌زدن تصویر فوندوس به چشم‌پزشک نیاز دارد و در عمل گاهی فقط چند تصویر برای هر درجه در دسترس است.</p>
+<p>مدل‌های بینایی و زبان مانند CLIP (Radford et al., 2021) برای رژیم کم‌نمونه (few-shot) مناسب‌اند، چون دانش زبانی‌شان دربارهٔ مفاهیم را می‌توان با چند نمونه به یک مسئلهٔ تازه منتقل کرد. پرسش این پژوهش این است که ترتیب درجه‌ها را کجا و چگونه باید در این فضای مشترک وارد کرد تا مدل با تعداد بسیار کمی تصویر، درجه‌ها را نه‌تنها درست، بلکه با خطاهای «نزدیک» پیش‌بینی کند. معیار اصلی موفقیت در همهٔ بخش‌ها کاپای وزنی درجه‌دوم (QWK) است و در کنار آن بررسی می‌شود که در ماتریس درهم‌ریختگی، خطاها با دور شدن از قطر اصلی کاهش یابند.</p>
+<p>سند در چهار بخش اصلی تنظیم شده است. هر بخش یک مدل کامل است و برای خواندن مستقل نوشته شده؛ اجزای مشترک در بخش ۱ با جزئیات کامل آمده و در بخش‌های بعد، همراه با اعداد کلیدی، خلاصه شده است.</p>
+
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  P["مسئله: درجه‌بندی ترتیبی DR&lt;br/&gt;با چند تصویر برای هر درجه"] --> M["بخش ۱ · مدل پایه&lt;br/&gt;پرامپت رتبه‌ای قابل‌یادگیری + LoRA تصویر&lt;br/&gt;+ زیان آگاه از رتبه + SMS"]
+  M --> D1["بخش ۲ · جهت ۱&lt;br/&gt;بردارهای درجه مستقیماً در فضای مشترک&lt;br/&gt;+ قیدهای هندسی ترتیبی"]
+  M --> D2["بخش ۳ · جهت ۲&lt;br/&gt;توصیف‌های بالینی + LoRA رمزگذار متن&lt;br/&gt;+ قیدهای ترتیبی روی خروجی متن"]
+  M --> D3["بخش ۴ · جهت ۳&lt;br/&gt;هر درجه یک توزیع فون‌میزس-فیشر&lt;br/&gt;+ تمرکز آموختنی برای ابهام هر درجه"]
+  D1 --> E["ارزیابی مشترک: QWK · MAE · ODC · ECE · NLL"]
+  D2 --> E
+  D3 --> E
+  M --> E
+</pre></div>
+<figcaption><b>شکل ۱:</b> چهار مدل پژوهش و ارتباط آن‌ها. هر سه جهت بر شاخهٔ تصویر، داده، پروتکل و معیارهای مدل پایه بنا شده‌اند و فقط در نحوهٔ ساختن نمایش متنیِ درجه‌ها تفاوت دارند.</figcaption>
+</figure>
+
+<div class="table-wrap"><table>
+<caption><b>جدول ۱:</b> چهار مدل در یک نگاه</caption>
+<thead><tr><th>مدل</th><th>نمایش متنی درجه‌ها از کجا می‌آید</th><th>ترتیب کجا اعمال می‌شود</th><th>پارامتر قابل‌آموزش</th></tr></thead>
+<tbody>
+<tr><td>مدل پایه</td><td>پرامپت با توکن‌های بافت و رتبهٔ قابل‌یادگیری، از رمزگذار متن منجمد</td><td>درون‌یابی توکن‌های رتبه، زیان آگاه از رتبه، SMS</td><td>۱٬۱۹۸٬۰۰۰</td></tr>
+<tr><td>جهت ۱</td><td>پنج بردار آزاد در فضای مشترک، آغازشده از جمله‌های بالینی</td><td>قیدهای نردبان، مسیر و لنگر روی خود بردارها</td><td>۱٬۱۹۳٬۳۹۲</td></tr>
+<tr><td>جهت ۲</td><td>میانگین ۵ توصیف بالینی برای هر درجه، از رمزگذار متنِ تطبیق‌یافته با LoRA</td><td>نردبان روی نمونه‌های اولیه، ترتیب توصیف‌ها، لنگر</td><td>۱٬۲۶۲٬۰۰۰</td></tr>
+<tr><td>جهت ۳</td><td>توزیع فون‌میزس-فیشر برای هر درجه: جهت میانگین و تمرکز</td><td>نردبان و لنگر روی میانگین‌ها، همپوشانی توزیع‌ها</td><td>۱٬۱۹۳٬۳۹۷</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s1">
+<h2><span class="num">۱.</span> مدل پایه (شاخهٔ master)</h2>
+
+<h3 id="s1-1"><span class="num">۱.۱</span> مسئله و ایدهٔ مدل</h3>
+<p>مدل پایه CLIP را بدون تغییر وزن‌های اصلی‌اش برای درجه‌بندی DR تطبیق می‌دهد. برای هر درجه یک جملهٔ قابل‌یادگیری ساخته می‌شود که از رمزگذار متن منجمد CLIP می‌گذرد و یک بردار نمونهٔ اولیه (prototype) برای آن درجه می‌سازد. تصویر هم از رمزگذار تصویر CLIP، که با تطبیق کم‌رتبه (LoRA) اندکی تنظیم شده، عبور می‌کند. درجهٔ پیش‌بینی‌شده نمونهٔ اولیه‌ای است که بیشترین شباهت کسینوسی را با بردار تصویر دارد.</p>
+<p>ترتیب درجه‌ها در سه جا وارد مدل می‌شود. توکن‌های رتبه از درون‌یابی سه توکن پایه ساخته می‌شوند، پس درجه‌های مجاور توکن‌های شبیه‌تری دارند (OrdinalCLIP). زیان آگاه از رتبه (CLIP-DR) مدل را وادار می‌کند شباهت تصویر با درجه‌ها با دور شدن از درجهٔ درست کاهش یابد. هموارسازی ماتریس شباهت (SMS) هم آماره‌های شباهت هر درجه را به درجه‌های همسایه نزدیک می‌کند.</p>
+
+<h3 id="s1-2"><span class="num">۱.۲</span> داده و پروتکل کم‌نمونه</h3>
+<p>دادهٔ اصلی بخش تصاویر فوندوس معمولی مجموعهٔ DeepDRiD است: ۱٬۶۰۰ تصویر از ۴۰۰ بیمار، برای هر چشم دو تصویر. برچسب هر تصویر درجهٔ همان چشم است، نه درجهٔ کلی بیمار. این تمایز مهم است: درجهٔ بیمار برابر بدترین چشم اوست و استفاده از آن به‌جای درجهٔ چشم، ۳۵۸ تصویر را ۱ تا ۴ درجه بالاتر برچسب می‌زد. ۳۰۰ بیمار (۱٬۲۰۰ تصویر) مجموعهٔ آموزش و ۱۰۰ بیمار دیگر (۴۰۰ تصویر، همان مجموعهٔ اعتبارسنجی رسمی DeepDRiD) مجموعهٔ آزمون را می‌سازند و هیچ بیماری در هر دو نیست.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۲:</b> توزیع درجه‌ها در DeepDRiD (برچسب در سطح چشم)</caption>
+<thead><tr><th>بخش</th><th>درجهٔ ۰</th><th>درجهٔ ۱</th><th>درجهٔ ۲</th><th>درجهٔ ۳</th><th>درجهٔ ۴</th><th>جمع</th></tr></thead>
+<tbody>
+<tr><td>آموزش</td><td>۵۴۰</td><td>۱۴۰</td><td>۲۳۴</td><td>۲۱۴</td><td>۷۲</td><td>۱٬۲۰۰</td></tr>
+<tr><td>آزمون</td><td>۱۷۴</td><td>۴۶</td><td>۹۲</td><td>۶۸</td><td>۲۰</td><td>۴۰۰</td></tr>
+</tbody></table></div>
+<p>در رژیم <i>k</i>-نمونه‌ای، از هر درجه <i>k</i> تصویر آموزشی به‌عنوان مجموعهٔ پشتیبان (support) برداشته می‌شود و مقدارهای ۱، ۲، ۴، ۸، ۱۶ و ۳۲ برای <i>k</i> بررسی می‌شوند. هر آزمایش با سه بذر تصادفی تکرار و میانگین و انحراف معیار گزارش می‌شود. سه نکتهٔ طراحی، نتیجه را منصفانه نگه می‌دارد. اول، مجموعه‌های پشتیبان تودرتو هستند: پشتیبان ۸-نمونه‌ای همهٔ تصاویر پشتیبان ۴-نمونه‌ای را در بر دارد، پس منحنی عملکرد بر حسب <i>k</i> کمتر نوفه دارد. دوم، مجموعهٔ پرس‌وجو (query) که برای توقف زودهنگام و انتخاب نقطهٔ ذخیره به کار می‌رود، فقط شامل بیمارانی است که هیچ تصویری در پشتیبان ندارند؛ چون هر بیمار چهار تصویر دارد، بدون این قید تصویر چشم دیگر همان بیمار وارد ارزیابی می‌شد. سوم، در هنگام انتخاب تصاویر پشتیبان، تصاویر بیماران تکراری در اولویت آخر قرار می‌گیرند تا پشتیبان تا حد ممکن بیماران متفاوت را پوشش دهد.</p>
+<p>دو حالت مرزی هم ارزیابی می‌شود. در حالت صفر-نمونه‌ای (<span dir="ltr">k = 0</span>) هیچ آموزشی انجام نمی‌شود و مدل با وزن‌های اولیه آزموده می‌شود. در حالت دادهٔ کامل (<span dir="ltr">k = −1</span>) کل مجموعهٔ آموزش استفاده می‌شود، جز ۲۰ درصد بیماران (۶۰ بیمار، ۲۴۰ تصویر) که برای اعتبارسنجی کنار گذاشته می‌شوند؛ این کنارگذاری بر اساس بیمار و به تفکیک بدترین درجهٔ هر بیمار انجام می‌شود. مجموعهٔ آزمون در هیچ حالتی برای انتخاب مدل استفاده نمی‌شود.</p>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  A["DeepDRiD · ۱٬۶۰۰ تصویر · ۴۰۰ بیمار&lt;br/&gt;برچسب = درجهٔ همان چشم"] --> T["آموزش: ۳۰۰ بیمار · ۱٬۲۰۰ تصویر"]
+  A --> X["آزمون: ۱۰۰ بیمار · ۴۰۰ تصویر&lt;br/&gt;فقط برای گزارش نهایی"]
+  T --> K["k-نمونه‌ای: k تصویر از هر درجه&lt;br/&gt;پشتیبان‌های تودرتو، ۳ بذر"]
+  T --> F["دادهٔ کامل: ۸۰٪ بیماران برای آموزش"]
+  T --> Z["صفر-نمونه‌ای: بدون آموزش"]
+  K --> KS["پشتیبان → آموزش"]
+  K --> KQ["پرس‌وجو: بیماران خارج از پشتیبان&lt;br/&gt;→ توقف زودهنگام و انتخاب نقطهٔ ذخیره"]
+  F --> FV["۲۰٪ بیماران → اعتبارسنجی"]
+</pre></div>
+<figcaption><b>شکل ۲:</b> تقسیم داده. همهٔ تقسیم‌ها در سطح بیمار انجام می‌شوند تا هیچ بیماری هم‌زمان در آموزش و ارزیابی نباشد.</figcaption>
+</figure>
+
+<h3 id="s1-3"><span class="num">۱.۳</span> پیش‌پردازش و افزایش داده</h3>
+<p>در آموزش، ضلع کوتاه‌تر تصویر با درون‌یابی دومکعبی به ۲۵۶ پیکسل می‌رسد، سپس برشی تصادفی به اندازهٔ <span dir="ltr">224×224</span>، قرینه‌سازی افقی تصادفی و تغییر رنگ اندک (روشنایی، کنتراست و اشباع، هر کدام تا ۰٫۱) اعمال و تصویر با میانگین و انحراف معیار CLIP نرمال می‌شود. در ارزیابی به‌جای برش تصادفی، برش مرکزی به کار می‌رود و افزایش داده‌ای در کار نیست. پیش‌پردازش مدل‌های مقایسه در دستور رسمی خودشان (تغییر اندازه به مربع ۲۵۶، برش، قرینه‌سازی و نرمال‌سازی ImageNet) فقط در پیکربندی‌های «رسمی» استفاده می‌شود.</p>
+
+<h3 id="s1-4"><span class="num">۱.۴</span> معماری و بلوک‌های مدل</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph IMG["شاخهٔ تصویر"]
+    X["تصویر فوندوس&lt;br/&gt;224×224"] --> V["رمزگذار تصویر CLIP RN50&lt;br/&gt;منجمد + LoRA روی لایه‌های کانولوشن"]
+    V --> Z["z: بردار تصویر ۱۰۲۴-بعدی، نرمال‌شده"]
+  end
+  subgraph TXT["شاخهٔ متن"]
+    B["۳ توکن رتبهٔ پایه β"] --> I["درون‌یابی OrdinalCLIP&lt;br/&gt;→ ۵ توکن رتبه r₀…r₄"]
+    C["۱۶ توکن بافت مشترک c₁…c₁₆"] --> PR["پرامپت درجهٔ k:&lt;br/&gt;[SOS] c₁…c₁₆ r_k [EOS]"]
+    I --> PR
+    PR --> TE["رمزگذار متن CLIP منجمد"]
+    TE --> T["t₀…t₄: نمونه‌های اولیهٔ درجه‌ها"]
+  end
+  Z --> S["ماتریس شباهت s = 100 · z · tᵀ"]
+  T --> S
+  S --> SMS["SMS: کالیبراسیون آماری&lt;br/&gt;فقط در آموزش"]
+  SMS --> L["زیان: آنتروپی متقاطع + زیان آگاه از رتبه"]
+  S --> P["پیش‌بینی: softmax و argmax"]
+</pre></div>
+<figcaption><b>شکل ۳:</b> معماری مدل پایه. بلوک‌های منجمد CLIP تغییر نمی‌کنند؛ فقط ماتریس‌های LoRA، توکن‌های بافت و سه توکن رتبهٔ پایه آموخته می‌شوند.</figcaption>
+</figure>
+
+<h4 id="s1-4-1"><span class="num">۱.۴.۱</span> شاخهٔ تصویر: CLIP RN50 با LoRA</h4>
+<p>رمزگذار تصویر، ResNet-50 مدل CLIP است که بردار ۱۰۲۴-بعدی تولید می‌کند. وزن‌های آن منجمد می‌مانند و روی همهٔ لایه‌های کانولوشن (لایه‌های ورودی و سه کانولوشن هر بلوک گلوگاهی) تطبیق کم‌رتبه (LoRA; Hu et al., 2022) اضافه می‌شود. LoRA به‌جای تغییر وزن <span dir="ltr">W</span>، حاصل‌ضرب دو ماتریس کوچک را به آن می‌افزاید:</p>
+<div class="eq">\[ W' = W + \frac{\alpha}{r}\, B A, \qquad r = 16,\ \alpha = 16,\ B_{\text{init}} = 0 \]<span class="tag">رابطهٔ ۱</span></div>
+<p>با <span dir="ltr">B = 0</span> در آغاز، مدل دقیقاً همان CLIP اولیه است. دراپ‌اوت LoRA برابر ۰٫۱ است و کل پارامترهای آن ۱٬۱۸۸٬۲۷۲ است. خروجی رمزگذار به طول واحد نرمال می‌شود: \( z = f_\theta(x) / \lVert f_\theta(x) \rVert \).</p>
+
+<h4 id="s1-4-2"><span class="num">۱.۴.۲</span> شاخهٔ متن: پرامپت رتبه‌ای با درون‌یابی OrdinalCLIP</h4>
+<p>برای هر درجهٔ <i>k</i> یک دنبالهٔ توکن ساخته می‌شود: نشانهٔ آغاز، ۱۶ توکن بافت مشترک \( c_1,\dots,c_{16} \)، یک توکن رتبه \( r_k \) و نشانهٔ پایان. توکن‌های بافت بین همهٔ درجه‌ها مشترک‌اند و با توزیع نرمال با انحراف معیار ۰٫۰۲ آغاز می‌شوند. توکن‌های رتبه آزاد نیستند: از سه بردار پایهٔ قابل‌یادگیری \( \beta_0, \beta_1, \beta_2 \) که در موقعیت‌های \( \pi = (0, 2, 4) \) روی محور درجه قرار گرفته‌اند، با وزن‌دهی خطی OrdinalCLIP ساخته می‌شوند:</p>
+<div class="eq">\[ r_k = \sum_{b=0}^{2} W_{kb}\, \beta_b, \qquad W_{kb} = \frac{1 - |k - \pi_b|/(K-1)}{\sum_{b'} \big(1 - |k - \pi_{b'}|/(K-1)\big)} \]<span class="tag">رابطهٔ ۲</span></div>
+<p>در این وزن‌دهی هر درجه آمیزه‌ای از هر سه پایه است، نه فقط دو پایهٔ نزدیک؛ بنابراین درجه‌های مجاور توکن‌های شبیه به هم دارند و ترتیب در خود پارامترسازی نهفته است. این وزن‌ها با کد رسمی OrdinalCLIP مقایسه و یکسان یافته شده‌اند.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۳:</b> ماتریس وزن درون‌یابی \( W \) برای ۵ درجه و ۳ پایه</caption>
+<thead><tr><th>درجه</th><th>\( \beta_0 \)</th><th>\( \beta_1 \)</th><th>\( \beta_2 \)</th></tr></thead>
+<tbody>
+<tr><td>۰</td><td>۰٫۶۶۷</td><td>۰٫۳۳۳</td><td>۰</td></tr>
+<tr><td>۱</td><td>۰٫۴۲۹</td><td>۰٫۴۲۹</td><td>۰٫۱۴۳</td></tr>
+<tr><td>۲</td><td>۰٫۲۵۰</td><td>۰٫۵۰۰</td><td>۰٫۲۵۰</td></tr>
+<tr><td>۳</td><td>۰٫۱۴۳</td><td>۰٫۴۲۹</td><td>۰٫۴۲۹</td></tr>
+<tr><td>۴</td><td>۰</td><td>۰٫۳۳۳</td><td>۰٫۶۶۷</td></tr>
+</tbody></table></div>
+<p>دنبالهٔ هر درجه از رمزگذار متن منجمد CLIP (ترنسفورمر ۱۲ لایه با پهنای ۵۱۲) عبور می‌کند و خروجیِ موقعیت نشانهٔ پایان پس از تصویر خطی، نمونهٔ اولیهٔ آن درجه است: \( t_k = g(p_k) / \lVert g(p_k) \rVert \). پارامترهای قابل‌آموزش این شاخه ۱۶×۵۱۲ برای بافت و ۳×۵۱۲ برای پایه‌ها، در مجموع ۹٬۷۲۸ است.</p>
+
+<h4 id="s1-4-3"><span class="num">۱.۴.۳</span> ماتریس شباهت و پیش‌بینی</h4>
+<p>شباهت تصویر <i>b</i> با درجهٔ <i>k</i> ضرب داخلی دو بردار نرمال‌شده در مقیاس دمای CLIP است. این مقیاس در مقدار ۱۰۰ ثابت نگه داشته می‌شود، همان‌طور که در OrdinalCLIP و CLIP-DR:</p>
+<div class="eq">\[ s_{bk} = \tau^{-1}\, z_b^{\top} t_k, \qquad \tau^{-1} = 100, \qquad p_{bk} = \frac{\exp(s_{bk})}{\sum_{j} \exp(s_{bj})}, \qquad \hat{y}_b = \arg\max_k p_{bk} \]<span class="tag">رابطهٔ ۳</span></div>
+
+<h4 id="s1-4-4"><span class="num">۱.۴.۴</span> هموارسازی ماتریس شباهت (SMS)</h4>
+<p>SMS از CLIP-DR (Yu et al., 2024) گرفته شده و صورت دقیق آن هموارسازی توزیع ویژگی (FDS; Yang et al., 2021) است که روی بردار ۵-بعدی شباهت هر تصویر اجرا می‌شود. ایده این است که آمارهٔ شباهت تصاویر یک درجه نباید از درجه‌های همسایه‌اش فاصلهٔ زیادی داشته باشد. برای هر درجهٔ <i>j</i>، در طول یک دوره (epoch) میانگین \( \mu_j \) و واریانس \( \Sigma_j \) بردارهای شباهت تصاویر آن درجه، به تفکیک هر بُعد، جمع‌آوری می‌شود. این آماره‌ها با تکانهٔ <span dir="ltr">m = 0.9</span> بین دوره‌ها به‌روزرسانی و سپس با هستهٔ گاوسی روی محور درجه هموار می‌شوند:</p>
+<div class="eq">\[ \tilde{\mu}_j = \sum_{j'} g(j - j')\, \mu_{j'}, \qquad \tilde{\Sigma}_j = \sum_{j'} g(j - j')\, \Sigma_{j'}, \qquad g = (0.186,\ 0.205,\ 0.217,\ 0.205,\ 0.186) \]<span class="tag">رابطهٔ ۴</span></div>
+<p>هسته اندازهٔ ۵ و انحراف معیار ۲ دارد و در لبه‌های محور درجه، بازتابی گسترش می‌یابد. در دورهٔ بعد، شباهت هر تصویر آموزشی با آمارهٔ درجهٔ خودش بازمقیاس می‌شود و زیان روی همین شباهت کالیبره‌شده محاسبه می‌شود:</p>
+<div class="eq">\[ \tilde{s}_b = \big(s_b - \mu_{y_b}\big) \odot \sqrt{\operatorname{clip}\!\big(\tilde{\Sigma}_{y_b} / \Sigma_{y_b},\ 0.5,\ 2\big)} + \tilde{\mu}_{y_b} \]<span class="tag">رابطهٔ ۵</span></div>
+<p>چون این کالیبراسیون به درجهٔ واقعی نیاز دارد، فقط در آموزش اعمال می‌شود و در آزمون شباهت خام به کار می‌رود. در حالت ۱-نمونه‌ای، هر درجه در هر دوره فقط یک تصویر دارد و واریانس صفر است؛ در این حالت SMS عملاً هیچ اثری ندارد. یک نکته برای گزارش: در کد منتشرشدهٔ CLIP-DR فراخوانی‌های SMS غیرفعال (توضیح‌کد) شده‌اند، هرچند مقاله اثر آن را گزارش می‌کند.</p>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["دورهٔ e: هر دسته"] --> B["شباهت خام s"]
+  B --> C["جمع‌آوری آماره‌ها&lt;br/&gt;میانگین و واریانس هر درجه"]
+  B --> D["کالیبراسیون با آمارهٔ دورهٔ e−1&lt;br/&gt;رابطهٔ ۵"]
+  D --> E["زیان و گرادیان"]
+  C --> F["پایان دوره: میانگین‌گیری با تکانه ۰٫۹&lt;br/&gt;+ هموارسازی گاوسی روی درجه‌ها"]
+  F --> G["آمارهٔ ثابت برای دورهٔ e+1"]
+</pre></div>
+<figcaption><b>شکل ۴:</b> چرخهٔ SMS در هر دوره. آماره‌ها در طول دوره ثابت‌اند و فقط در پایان دوره به‌روز می‌شوند.</figcaption>
+</figure>
+
+<h3 id="s1-5"><span class="num">۱.۵</span> توابع هزینه</h3>
+<p>زیان کل مدل پایه دو جزء دارد که هر دو روی شباهت کالیبره‌شدهٔ \( \tilde{s} \) محاسبه می‌شوند:</p>
+<div class="eq">\[ \mathcal{L} = \mathcal{L}_{\mathrm{CE}}(\tilde{s}, y) + \lambda_{\mathrm{rank}}\, \mathcal{L}_{\mathrm{rank}}(\tilde{s}, y), \qquad \lambda_{\mathrm{rank}} = 1 \]<span class="tag">رابطهٔ ۶</span></div>
+<p><b>آنتروپی متقاطع.</b> زیان استاندارد طبقه‌بندی که تصویر را به نمونهٔ اولیهٔ درجهٔ درست نزدیک و از بقیه دور می‌کند: \( \mathcal{L}_{\mathrm{CE}} = -\frac{1}{B} \sum_b \log p_{b, y_b} \). این زیان به تنهایی ترتیب را نمی‌بیند؛ پیش‌بینی درجهٔ ۴ برای تصویر درجهٔ ۰ همان‌قدر جریمه می‌شود که پیش‌بینی درجهٔ ۱.</p>
+<p><b>زیان آگاه از رتبه.</b> این زیان از CLIP-DR است و شکل «تک‌قله‌ای» را تحمیل می‌کند: شباهت تصویر با درجه‌ها باید از درجهٔ درست به سمت هر دو طرف به‌طور یکنواخت کاهش یابد. برای هر جفت درجهٔ مجاور در سمت راست و چپ درجهٔ درست، زیان دوتایی لجستیک اعمال می‌شود:</p>
+<div class="eq">\[ \mathcal{L}_{\mathrm{rank}} = \frac{1}{B} \sum_{b} \Bigg[ \sum_{r = y_b}^{K-2} -\log \sigma\!\Big(\frac{s_{b,r} - s_{b,r+1}}{\tau_r}\Big) + \sum_{r = 1}^{y_b} -\log \sigma\!\Big(\frac{s_{b,r} - s_{b,r-1}}{\tau_r}\Big) \Bigg], \qquad \tau_r = 1 \]<span class="tag">رابطهٔ ۷</span></div>
+<p>این صورت همان رابطهٔ مقاله است. کد CLIP-DR همین قید را با آنتروپی متقاطع روی بردارهایی پیاده می‌کند که درایه‌های غیرمرتبطشان صفر است و فقط سه گام فاصله را می‌پوشاند؛ صورت بالا همهٔ جفت‌ها را بدون آن درایه‌های صفر در بر دارد.</p>
+<div class="note"><p><b>اجزای کنارگذاشته‌شده.</b> RankFormer و زیان دوتایی وزن‌دار با فاصله، که از مقالهٔ L2RCLIP الهام گرفته‌اند، جزو مدل پایه نیستند. مخزن رسمی L2RCLIP کد مدل، کد آموزش و وزن‌های آموخته را منتشر نکرده است، پس درستی پیاده‌سازی را فقط می‌توان با متن مقاله سنجید. این دو جزء به‌صورت پیکربندی‌های جداگانه نگه داشته شده‌اند و در بخش ۱.۸ شرح داده می‌شوند.</p></div>
+
+<h3 id="s1-6"><span class="num">۱.۶</span> آموزش و بهینه‌سازی</h3>
+<div class="table-wrap"><table>
+<caption><b>جدول ۴:</b> تنظیمات آموزش مدل پایه</caption>
+<thead><tr><th>مؤلفه</th><th>مقدار</th></tr></thead>
+<tbody>
+<tr><td>بهینه‌ساز</td><td>AdamW، نرخ یادگیری \( 10^{-4} \)، کاهش وزن \( 10^{-4} \)</td></tr>
+<tr><td>زمان‌بندی نرخ یادگیری</td><td>۵ دورهٔ گرم‌کردن خطی و سپس کاهش کسینوسی</td></tr>
+<tr><td>تعداد دوره</td><td>۵۰ (یکسان برای همهٔ مدل‌های هم‌تراز)</td></tr>
+<tr><td>اندازهٔ دسته</td><td>آموزش: کمینهٔ اندازهٔ پشتیبان و ۳۲؛ ارزیابی: ۳۲</td></tr>
+<tr><td>توقف زودهنگام</td><td>صبر ۲۰ دوره روی QWK مجموعهٔ پرس‌وجو</td></tr>
+<tr><td>نقطه‌های ذخیره</td><td>بهترین مدل بر اساس QWK پرس‌وجو و آخرین دوره، پس از هر دوره؛ آزمون با بهترین</td></tr>
+<tr><td>دقت عددی و پایداری</td><td>آمیختهٔ bf16، برش گرادیان با نُرم ۱</td></tr>
+<tr><td>پارامترهای منجمد</td><td>همهٔ CLIP، از جمله جدول تعبیهٔ واژه‌ها و مقیاس دما</td></tr>
+<tr><td>پارامترهای قابل‌آموزش</td><td>LoRA تصویر ۱٬۱۸۸٬۲۷۲ + توکن‌ها ۹٬۷۲۸ = ۱٬۱۹۸٬۰۰۰</td></tr>
+</tbody></table></div>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  S["شروع اجرا: پیکربندی + k + بذر"] --> C{"این پیکربندی قبلاً اجرا شده؟"}
+  C -- "بله" --> R["بارگذاری نتیجه از حافظهٔ مشترک"]
+  C -- "خیر" --> E["دورهٔ آموزش روی پشتیبان"]
+  E --> V["اعتبارسنجی روی پرس‌وجو&lt;br/&gt;QWK و معیارها"]
+  V --> K["ذخیرهٔ best و last"]
+  K --> D{"بهبود در ۲۰ دورهٔ اخیر؟&lt;br/&gt;و دوره &lt; ۵۰؟"}
+  D -- "بله" --> E
+  D -- "خیر" --> B["بارگذاری بهترین نقطهٔ ذخیره"]
+  B --> T["آزمون روی ۴۰۰ تصویر"]
+  T --> M["ذخیرهٔ معیارها و ماتریس درهم‌ریختگی"]
+</pre></div>
+<figcaption><b>شکل ۵:</b> گردش کار یک اجرا. اجرای قطع‌شده از آخرین نقطهٔ ذخیره ادامه می‌یابد و اجرای تکراری دوباره آموزش داده نمی‌شود.</figcaption>
+</figure>
+
+<h3 id="s1-7"><span class="num">۱.۷</span> ارزیابی و معیارها</h3>
+<p>همهٔ معیارها روی ۴۰۰ تصویر آزمون و با پیش‌بینی بیشینه‌احتمال محاسبه می‌شوند. معیار اصلی QWK است و دو معیار ترتیبی ODC و جرم خطا بر حسب فاصله نشان می‌دهند که آیا خطاها «نزدیک» هستند. سه معیار کالیبراسیون (ECE، NLL و برایر) کیفیت احتمال‌های پیش‌بینی‌شده را می‌سنجند.</p>
+<p><b>کاپای وزنی درجه‌دوم (QWK).</b> توافق پیش‌بینی و برچسب، با جریمه‌ای متناسب با مجذور فاصلهٔ درجه‌ها. \( O \) ماتریس درهم‌ریختگی و \( E \) ماتریس مورد انتظار تحت استقلال است:</p>
+<div class="eq">\[ \kappa_w = 1 - \frac{\sum_{i,j} w_{ij} O_{ij}}{\sum_{i,j} w_{ij} E_{ij}}, \qquad w_{ij} = \frac{(i - j)^2}{(K-1)^2} \]<span class="tag">رابطهٔ ۸</span></div>
+<p><b>میانگین خطای مطلق (MAE)، F1 کلان، دقت و AUC.</b> \( \mathrm{MAE} = \frac{1}{N} \sum_i |\hat{y}_i - y_i| \) فاصلهٔ متوسط پیش‌بینی از درجهٔ درست است. F1 کلان میانگین F1 پنج درجه است و به درجه‌های کم‌نمونه وزن برابر می‌دهد. AUC به روش یکی در برابر بقیه و با میانگین کلان محاسبه می‌شود؛ CLIP-DR در گزارش خود روش یکی در برابر یکی را به کار برده است و در مقایسه با اعداد آن مقاله باید به این تفاوت توجه کرد.</p>
+<p><b>امتیاز ترتیبی محلی (LOS).</b> سهم تصاویری که احتمال درجهٔ پیش‌بینی‌شده‌شان از هر دو درجهٔ همسایه بیشتر است، یعنی توزیع پیش‌بینی در آن نقطه قله دارد.</p>
+<p><b>سازگاری افت ترتیبی (ODC).</b> برای هر سطر <i>i</i> از ماتریس درهم‌ریختگی که نرمال‌سازی سطری شده (\( P_{ij} \))، با حرکت از قطر به سمت دو لبه، مجموع افزایش‌های جرم خطا شمرده می‌شود:</p>
+<div class="eq">\[ v_i = \sum_{j > i} \max\!\big(0,\ P_{i,j+1} - P_{i,j}\big) + \sum_{j < i} \max\!\big(0,\ P_{i,j-1} - P_{i,j}\big), \qquad \mathrm{ODC} = 1 - \frac{1}{|\mathcal{I}|} \sum_{i \in \mathcal{I}} v_i \]<span class="tag">رابطهٔ ۹</span></div>
+<p>\( \mathcal{I} \) سطرهایی است که نمونه دارند. در صورت کامل (ODC<sub>full</sub>)، گام از خود قطر هم شمرده می‌شود و در صورت خارج‌قطری (ODC<sub>offdiag</sub>) شمارش از یک گام بعد از قطر آغاز می‌شود. مقدار ۱ یعنی در هر سطر جرم خطا با دور شدن از قطر هرگز افزایش نمی‌یابد. سهم سطرهایی که هیچ نقض ندارند هم گزارش می‌شود.</p>
+<p><b>جرم خطا بر حسب فاصله.</b> \( m_\Delta \) میانگین سطری جرم پیش‌بینی در فاصلهٔ \( |\hat{y} - y| = \Delta \) است، برای <span dir="ltr">Δ = 0, …, 4</span>. مدل ترتیبی خوب بیشترین جرم را در <span dir="ltr">Δ = 0</span> و جرمی نزولی در فاصله‌های بعدی دارد.</p>
+<p><b>معیارهای کالیبراسیون.</b> خطای کالیبراسیون مورد انتظار (ECE) با ۱۵ بازهٔ هم‌عرض اطمینان محاسبه می‌شود. لگاریتم درست‌نمایی منفی (NLL) و امتیاز برایر هر دو قاعده‌های امتیازدهی سره هستند و کل توزیع احتمال را می‌سنجند:</p>
+<div class="eq">\[ \mathrm{ECE} = \sum_{m=1}^{15} \frac{|B_m|}{N} \big| \mathrm{acc}(B_m) - \mathrm{conf}(B_m) \big|, \qquad \mathrm{NLL} = -\frac{1}{N} \sum_i \log p_{i, y_i}, \qquad \mathrm{Brier} = \frac{1}{N} \sum_i \sum_k \big(p_{ik} - \mathbb{1}[y_i = k]\big)^2 \]<span class="tag">رابطهٔ ۱۰</span></div>
+
+<h3 id="s1-8"><span class="num">۱.۸</span> مدل‌های مقایسه و آزمایش‌های حذفی</h3>
+<p>همهٔ مدل‌های مقایسه با کد اصلی نویسندگانشان بررسی شده‌اند. برای هر کدام دو نسخه وجود دارد: نسخهٔ «هم‌تراز» که فقط روش را از مقاله می‌گیرد و بقیهٔ شرایط (پشتوانهٔ RN50، بودجهٔ آموزش، پیش‌پردازش و داده) را با مدل ما یکسان نگه می‌دارد، و نسخهٔ «رسمی» که دستور آموزش خود نویسندگان را اجرا می‌کند.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۵:</b> مدل‌های مقایسه در شاخهٔ master</caption>
+<thead><tr><th>مدل</th><th>یادگیرندهٔ پرامپت</th><th>زیان</th><th>رمزگذار تصویر و آموزش</th></tr></thead>
+<tbody>
+<tr><td>OrdinalCLIP هم‌تراز</td><td>۱۳ توکن بافت آغازشده از جملهٔ متنی، ۳ پایهٔ درون‌یابی، نقطهٔ پایان جمله</td><td>CE + KL</td><td>منجمد؛ تنظیمات ما</td></tr>
+<tr><td>OrdinalCLIP رسمی</td><td>همان</td><td>CE + KL</td><td>تنظیم کامل؛ RAdam، کاهش وزن \( 5\times10^{-4} \)، ۱۰۰ دوره، پیش‌پردازش ImageNet</td></tr>
+<tr><td>CLIP-DR هم‌تراز</td><td>۱۰ توکن بافت تصادفی، ۵ توکن رتبهٔ آزاد، نقطهٔ پایان جمله</td><td>CE + KL + زیان آگاه از رتبه؛ بدون SMS (مطابق کد منتشرشده)</td><td>LoRA؛ تنظیمات ما</td></tr>
+<tr><td>CLIP-DR رسمی</td><td>همان</td><td>همان</td><td>تنظیم کامل؛ RAdam، بدون کاهش وزن، ۳۱ دوره، دستهٔ ۶۴</td></tr>
+<tr><td>L2RCLIP (پیاده‌سازی ما)</td><td>RankFormer روی توکن‌های رتبه</td><td>CE + زیان دوتایی وزن‌دار با فاصله</td><td>LoRA؛ تنظیمات ما؛ بدون SMS و زیان رتبه</td></tr>
+</tbody></table></div>
+<p><b>زیان KL در OrdinalCLIP.</b> برای هر درجهٔ <i>k</i> که در دسته حضور دارد، توزیع شباهت آن درجه روی تصاویر دسته به توزیعی تقریباً یکنواخت روی تصاویرِ همان درجه نزدیک می‌شود:</p>
+<div class="eq">\[ \mathcal{L}_{\mathrm{KL}} = \frac{1}{|\mathcal{K}_B|} \sum_{k \in \mathcal{K}_B} \mathrm{KL}\!\Big( \operatorname{softmax}_b\!\big(10\, \mathbb{1}[y_b = k]\big) \,\Big\Vert\, \operatorname{softmax}_b\!\big(s_{bk}\big) \Big) \]<span class="tag">رابطهٔ ۱۱</span></div>
+<p><b>RankFormer.</b> در پیاده‌سازی ما بر اساس مقالهٔ L2RCLIP، توکن‌های رتبه پیش از ورود به رمزگذار متن از یک بلوک توجه می‌گذرند: \( R' = (1-\alpha) R + \alpha\, \mathrm{FFN}(\mathrm{MSA}(\mathrm{LN}(R))) \) با <span dir="ltr">α = 0.5</span>، توجه چندسر با ۴ سر و شبکهٔ پیش‌خور <span dir="ltr">512 → 2048 → 512</span> که لایهٔ خروجی‌اش با صفر آغاز می‌شود. مقدار α در مقاله گزارش نشده و انتخاب ماست.</p>
+<p><b>زیان دوتایی وزن‌دار با فاصله.</b> این زیان از ایدهٔ L2RCLIP الهام گرفته اما همان زیان مقاله نیست: \( \mathcal{L}_{\mathrm{pair}} = \frac{1}{B} \sum_b \sum_{j \ne y_b} |y_b - j| \cdot \big(-\log \sigma(s_{b,y_b} - s_{bj})\big) \). هرچه درجهٔ اشتباه دورتر باشد، نزدیک بودن تصویر به آن بیشتر جریمه می‌شود.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۶:</b> آزمایش‌های حذفی مدل پایه (هر کدام فقط در یک جزء با مدل کامل تفاوت دارد)</caption>
+<thead><tr><th>آزمایش</th><th>تغییر</th><th>پرسشی که پاسخ می‌دهد</th></tr></thead>
+<tbody>
+<tr><td>بدون SMS</td><td>SMS خاموش</td><td>آیا هموارسازی آماری در آموزش کمک می‌کند؟</td></tr>
+<tr><td>بدون زیان رتبه</td><td>\( \lambda_{\mathrm{rank}} = 0 \)</td><td>سهم قید تک‌قله‌ای</td></tr>
+<tr><td>بدون LoRA</td><td>رمزگذار تصویر کاملاً منجمد</td><td>نیاز به تطبیق شاخهٔ تصویر</td></tr>
+<tr><td>فقط LoRA</td><td>بدون SMS و زیان رتبه؛ فقط CE</td><td>عملکرد بدون هیچ جزء ترتیبی در زیان</td></tr>
+<tr><td>مدل ما + اجزای L2RCLIP</td><td>RankFormer و زیان دوتایی افزوده</td><td>آیا اجزای L2RCLIP چیزی اضافه می‌کنند؟</td></tr>
+</tbody></table></div>
+
+<h3 id="s1-9"><span class="num">۱.۹</span> گردش کار آزمایش‌ها</h3>
+<p>آزمایش‌ها در دو مرحله اجرا می‌شوند. در مرحلهٔ ۱ فقط مدل اصلی هر شاخه در همهٔ مقدارهای <i>k</i> و سه بذر آموزش داده می‌شود (۸ رژیم × ۳ بذر = ۲۴ اجرا برای هر مدل). سپس مدل‌های اصلی چهار شاخه کنار هم مقایسه می‌شوند. مرحلهٔ ۲، یعنی همهٔ مدل‌های مقایسه و آزمایش‌های حذفی، فقط برای شاخه‌ای که در مرحلهٔ ۱ بهترین بوده و در پایان برای گزارش نهایی اجرا می‌شود.</p>
+<p>همهٔ اجراها در یک حافظهٔ مشترک ذخیره می‌شوند که کلید آن چکیدهٔ پیکربندی کامل اجراست، نه نام آن. اگر دو دفترچه یک پیکربندی یکسان را بخواهند، مثلاً «مدل ما» در دفترچهٔ master و «مدل master» در دفترچهٔ جهت ۳، فقط یک بار آموزش انجام می‌شود. مکان داده، تعداد کارگرهای بارگذار، <i>k</i> و بذر در کلید وارد نمی‌شوند؛ دو مورد آخر نام زیرپوشهٔ اجرا را تعیین می‌کنند. یکسان بودن کلیدها در هر چهار شاخه بررسی و تأیید شده است.</p>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph P1["مرحلهٔ ۱ · مدل‌های اصلی"]
+    A1["master: مدل ما"]
+    A2["جهت ۱"]
+    A3["جهت ۲"]
+    A4["جهت ۳"]
+  end
+  A1 --> C["حافظهٔ مشترک اجراها&lt;br/&gt;کلید = چکیدهٔ پیکربندی"]
+  A2 --> C
+  A3 --> C
+  A4 --> C
+  C --> Q["مقایسهٔ مدل‌های اصلی&lt;br/&gt;QWK · MAE · ODC · ECE · NLL"]
+  Q --> W{"بهترین شاخه"}
+  W --> P2["مرحلهٔ ۲: مدل‌های مقایسه و آزمایش‌های حذفی آن شاخه"]
+  P2 --> C
+  P2 --> R["گزارش نهایی: جدول‌ها، منحنی‌های k، ماتریس‌های درهم‌ریختگی"]
+</pre></div>
+<figcaption><b>شکل ۶:</b> گردش کار دو مرحله‌ای. اجرای تکراری یک پیکربندی در هیچ دفترچه‌ای دوباره آموزش داده نمی‌شود.</figcaption>
+</figure>
+</section>
+
+<section id="s2">
+<h2><span class="num">۲.</span> جهت ۱: هندسهٔ ترتیبی مستقیم (شاخهٔ direction1-ordinal-geometry)</h2>
+
+<h3 id="s2-1"><span class="num">۲.۱</span> انگیزه و شکاف پژوهشی</h3>
+<p>در مدل پایه، ترتیب از راه توکن‌های ورودی رمزگذار متن وارد می‌شود. توکن‌های رتبه شاید به هم نزدیک باشند، اما رمزگذار متن یک تابع غیرخطی و منجمد است و هیچ تضمینی نیست که نمونه‌های اولیهٔ خروجی، یعنی همان بردارهایی که شباهت با آن‌ها سنجیده می‌شود، ترتیب را حفظ کنند. از سوی دیگر روش‌های جدید کم‌نمونه مانند CLAP (Silva-Rodríguez et al., 2024) نمونه‌های اولیه را مستقیماً در فضای مشترک می‌آموزند و با یک لنگر به متن اولیه نزدیک نگه می‌دارند؛ اما این روش‌ها هیچ رابطه‌ای میان کلاس‌ها در نظر نمی‌گیرند. جهت ۱ این دو را ترکیب می‌کند: پنج بردار درجه مستقیماً در فضای مشترک آموخته می‌شوند و ترتیب، با قیدهای هندسی، روی خود همین بردارها اعمال می‌شود.</p>
+
+<h3 id="s2-2"><span class="num">۲.۲</span> تفاوت با مدل پایه</h3>
+<div class="table-wrap"><table>
+<caption><b>جدول ۷:</b> آنچه در جهت ۱ تغییر می‌کند و آنچه ثابت می‌ماند</caption>
+<thead><tr><th>جزء</th><th>مدل پایه</th><th>جهت ۱</th></tr></thead>
+<tbody>
+<tr><td>نمایش درجه‌ها</td><td>پرامپت قابل‌یادگیری از رمزگذار متن منجمد</td><td>پنج بردار آزاد ۱۰۲۴-بعدی روی کرهٔ واحد</td></tr>
+<tr><td>رمزگذار متن در آموزش</td><td>در هر گام فراخوانی می‌شود</td><td>فقط یک بار برای مقداردهی اولیه</td></tr>
+<tr><td>قید ترتیبی روی نمایش</td><td>درون‌یابی توکن‌ها</td><td>نردبان فاصله، مسیر هموار، لنگر به متن</td></tr>
+<tr><td>شاخهٔ تصویر، داده، SMS، زیان رتبه، معیارها، آموزش</td><td colspan="2">یکسان (بخش‌های ۱.۲، ۱.۳، ۱.۴.۱، ۱.۴.۴، ۱.۵، ۱.۶ و ۱.۷)</td></tr>
+</tbody></table></div>
+
+<h3 id="s2-3"><span class="num">۲.۳</span> معماری</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph INIT["یک بار، پیش از آموزش"]
+    S["۵ جملهٔ بالینی ICDR"] --> TE["رمزگذار متن CLIP منجمد"]
+    TE --> T0["t⁰₀…t⁰₄: لنگرها"]
+  end
+  T0 --> T["t₀…t₄: پارامترهای آزاد&lt;br/&gt;نرمال‌سازی پس از هر گام"]
+  X["تصویر"] --> V["CLIP RN50 + LoRA"] --> Z["z"]
+  Z --> SIM["s = 100 · z · t̂ᵀ"]
+  T --> SIM
+  SIM --> SMS["SMS در آموزش"] --> L1["CE + زیان آگاه از رتبه"]
+  T --> G["قیدهای هندسی: نردبان · مسیر · لنگر"]
+  T0 --> G
+  L1 --> LT["زیان کل"]
+  G --> LT
+</pre></div>
+<figcaption><b>شکل ۷:</b> معماری جهت ۱. رمزگذار متن فقط در مقداردهی اولیه به کار می‌رود و در آموزش و آزمون حذف می‌شود.</figcaption>
+</figure>
+
+<h3 id="s2-4"><span class="num">۲.۴</span> مقداردهی اولیهٔ بردارهای درجه</h3>
+<p>هر بردار درجه با کدگذاری یک جملهٔ بالینی مطابق مقیاس ICDR (Wilkinson et al., 2003) توسط رمزگذار متن منجمد آغاز می‌شود و نسخهٔ نرمال‌شدهٔ همین بردار به‌عنوان لنگر \( \hat{t}^{0}_k \) نگه داشته می‌شود. در آزمایش‌های حذفی دو مقداردهی دیگر هم بررسی می‌شود: جمله‌های ساده («تصویر فوندوس با رتینوپاتی خفیف» و مانند آن) و پنج بردار متعامد تصادفی بدون هیچ دانش زبانی.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۸:</b> جمله‌های بالینی مقداردهی اولیه (به زبان اصلی، همان‌گونه که به رمزگذار داده می‌شوند)</caption>
+<thead><tr><th>درجه</th><th>جمله</th></tr></thead>
+<tbody>
+<tr><td class="grade">۰</td><td class="sentences">A fundus photograph showing no diabetic retinopathy, with normal retinal vasculature and no microaneurysms or hemorrhages.</td></tr>
+<tr><td class="grade">۱</td><td class="sentences">A fundus photograph showing mild non-proliferative diabetic retinopathy, characterized by the presence of microaneurysms only.</td></tr>
+<tr><td class="grade">۲</td><td class="sentences">A fundus photograph showing moderate non-proliferative diabetic retinopathy, with multiple microaneurysms, dot and blot hemorrhages, hard exudates, or cotton wool spots, less than severe.</td></tr>
+<tr><td class="grade">۳</td><td class="sentences">A fundus photograph showing severe non-proliferative diabetic retinopathy, with extensive intraretinal hemorrhages in four quadrants, venous beading, or intraretinal microvascular abnormalities.</td></tr>
+<tr><td class="grade">۴</td><td class="sentences">A fundus photograph showing proliferative diabetic retinopathy, characterized by neovascularization on the optic disc or elsewhere, vitreous hemorrhage, or preretinal hemorrhage.</td></tr>
+</tbody></table></div>
+
+<h3 id="s2-5"><span class="num">۲.۵</span> قیدهای هندسی ترتیبی</h3>
+<p>همهٔ قیدها روی بردارهای نرمال‌شدهٔ \( \hat{t}_k \) و با فاصلهٔ کسینوسی \( d(i, j) = 1 - \hat{t}_i^{\top} \hat{t}_j \) تعریف می‌شوند.</p>
+<p><b>نردبان فاصله.</b> از دید هر درجه، درجهٔ نزدیک‌تر باید از درجهٔ دورتر نزدیک‌تر باشد و این تفاوت با فاصلهٔ درجه‌ها حاشیه‌ای متناسب داشته باشد. برای پنج درجه، ۱۰ قید از این نوع وجود دارد:</p>
+<div class="eq">\[ \mathcal{L}_{\mathrm{ladder}} = \sum_{i} \sum_{1 \le \Delta < \Delta' \le K-1-i} \max\!\Big(0,\ d(i, i{+}\Delta) - d(i, i{+}\Delta') + (\Delta' - \Delta)\, m\Big), \qquad m = 0.05 \]<span class="tag">رابطهٔ ۱۲</span></div>
+<p><b>مسیر هموار.</b> پنج بردار باید روی یک خم یک‌بعدی و هموار روی کره قرار بگیرند تا ترتیب درجه‌ها در هندسه دیده شود. با گام‌های \( v_k = \hat{t}_{k+1} - \hat{t}_k \)، دو جزء تعریف می‌شود: هموار بودن (مشتق دوم کوچک) و هم‌جهت بودن گام‌های پیاپی:</p>
+<div class="eq">\[ \mathcal{L}_{\mathrm{smooth}} = \sum_{k=1}^{K-2} \lVert v_k - v_{k-1} \rVert^2, \qquad \mathcal{L}_{\mathrm{align}} = \sum_{k=1}^{K-2} \big(1 - \cos(v_k, v_{k-1})\big), \qquad \mathcal{L}_{\mathrm{path}} = \mathcal{L}_{\mathrm{smooth}} + \mathcal{L}_{\mathrm{align}} \]<span class="tag">رابطهٔ ۱۳</span></div>
+<p><b>لنگر.</b> در رژیم ۱ یا ۲ نمونه‌ای، بردارهای آزاد به‌آسانی بیش‌برازش می‌کنند و دانش زبانی اولیه را از دست می‌دهند. لنگر هر بردار را به نقطهٔ آغازش نزدیک نگه می‌دارد. روی کرهٔ واحد، مجذور فاصلهٔ اقلیدسی برابر \( 2(1 - \cos) \) است:</p>
+<div class="eq">\[ \mathcal{L}_{\mathrm{anchor}} = \sum_k \lambda_k \lVert \hat{t}_k - \hat{t}^{0}_k \rVert^2 = \sum_k 2 \lambda_k \big(1 - \hat{t}_k^{\top} \hat{t}^{0}_k\big) \]<span class="tag">رابطهٔ ۱۴</span></div>
+<p>در مدل اصلی همهٔ \( \lambda_k \) برابر ۱ هستند. دو وزن‌دهی دیگر در آزمایش حذفی بررسی می‌شوند: وزن متناسب با معکوس ریشهٔ فراوانی هر درجه در دادهٔ آموزش (با میانگین ۱)، و وزن CLAP که برابر میانگین احتمال صفر-نمونه‌ای درجهٔ درست روی تصاویر پشتیبانِ همان درجه است.</p>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  T0["t̂₀"] --- T1["t̂₁"] --- T2["t̂₂"] --- T3["t̂₃"] --- T4["t̂₄"]
+  N["نردبان: d(0,1) &lt; d(0,2) &lt; d(0,3) &lt; d(0,4)&lt;br/&gt;و مشابه برای هر درجه، با حاشیهٔ m"] -.-> T0
+  P["مسیر: گام‌های پیاپی هم‌جهت و هم‌اندازه"] -.-> T2
+  A["لنگر: هر t̂ نزدیک t̂⁰ متن بالینی"] -.-> T4
+</pre></div>
+<figcaption><b>شکل ۸:</b> سه قید هندسی روی بردارهای درجه. نردبان ترتیب فاصله‌ها، مسیر شکل کلی و لنگر پیوند با دانش زبانی را حفظ می‌کند.</figcaption>
+</figure>
+
+<h3 id="s2-6"><span class="num">۲.۶</span> تابع هزینهٔ کل</h3>
+<div class="eq">\[ \mathcal{L} = \mathcal{L}_{\mathrm{CE}}(\tilde{s}, y) + \mathcal{L}_{\mathrm{rank}}(\tilde{s}, y) + \mathcal{L}_{\mathrm{ladder}} + \mathcal{L}_{\mathrm{path}} + \mathcal{L}_{\mathrm{anchor}} \]<span class="tag">رابطهٔ ۱۵</span></div>
+<p>همهٔ وزن‌ها برابر ۱ هستند و \( \tilde{s} \) همان شباهت کالیبره‌شده با SMS است. زیان دوتایی وزن‌دار با فاصله در مدل اصلی جهت ۱ وجود ندارد و فقط در آزمایش حذفی «+ زیان دوتایی» افزوده می‌شود.</p>
+
+<h3 id="s2-7"><span class="num">۲.۷</span> بهینه‌سازی</h3>
+<p>بردارهای درجه با AdamW و همان نرخ یادگیری \( 10^{-4} \) اما بدون کاهش وزن آموخته می‌شوند، چون کاهش وزن روی پارامتری که دوباره به کره تصویر می‌شود فقط اندازهٔ گام مؤثر را تغییر می‌دهد. پس از هر گام بهینه‌ساز، هر بردار دوباره به طول واحد نرمال می‌شود. بقیهٔ تنظیمات همان جدول ۴ است. پارامترهای قابل‌آموزش ۱٬۱۸۸٬۲۷۲ (LoRA) به‌اضافهٔ ۵×۱۰۲۴ = ۵٬۱۲۰ (بردارهای درجه) هستند.</p>
+
+<h3 id="s2-8"><span class="num">۲.۸</span> داده، ارزیابی و تشخیص‌های هندسی</h3>
+<p>داده، پروتکل کم‌نمونه، پیش‌پردازش و همهٔ معیارهای بخش ۱.۷ بدون تغییر به کار می‌روند: ۲۴ اجرا برای مدل اصلی (<span dir="ltr">k ∈ {−1, 0, 1, 2, 4, 8, 16, 32}</span> با ۳ بذر)، آزمون روی ۴۰۰ تصویر و QWK به‌عنوان معیار اصلی. در حالت صفر-نمونه‌ای، مدل همان طبقه‌بند صفر-نمونه‌ای CLIP با جمله‌های بالینی است. افزون بر معیارها، در پایان هر دوره چهار تشخیص هندسی ذخیره می‌شود: ماتریس فاصلهٔ کسینوسی بین درجه‌ها، زاویهٔ چرخش میان گام‌های پیاپی مسیر، فاصلهٔ هر بردار از لنگرش و سهم قیدهای نردبانِ برقرار.</p>
+
+<h3 id="s2-9"><span class="num">۲.۹</span> مدل‌های مقایسه و آزمایش‌های حذفی</h3>
+<p>مقایسه شامل مدل master، همهٔ مدل‌های جدول ۵ و دو نسخه از CLAP است. CLAP هم‌تراز با جمله‌های ساده آغاز می‌شود، وزن لنگر CLAP را به کار می‌برد، فقط زیان CE و لنگر دارد و LoRA تصویر را حفظ می‌کند. CLAP رسمی یک کاوشگر خطی روی ویژگی‌های منجمد است: بدون LoRA، با SGD و نرخ ۰٫۱ به مدت ۳۰۰ دوره و بدون توقف زودهنگام.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۹:</b> آزمایش‌های حذفی جهت ۱</caption>
+<thead><tr><th>آزمایش</th><th>تغییر نسبت به مدل اصلی</th></tr></thead>
+<tbody>
+<tr><td>بدون نردبان / بدون مسیر / بدون لنگر</td><td>وزن همان قید صفر</td></tr>
+<tr><td>بدون قیدهای هندسی</td><td>هر سه قید صفر</td></tr>
+<tr><td>فقط CE و هندسه</td><td>بدون زیان رتبه و SMS</td></tr>
+<tr><td>مقداردهی با جمله‌های ساده</td><td>جمله‌های کوتاه به‌جای جمله‌های بالینی</td></tr>
+<tr><td>مقداردهی متعامد تصادفی</td><td>بدون هیچ دانش زبانی</td></tr>
+<tr><td>لنگر با معکوس ریشهٔ فراوانی</td><td>\( \lambda_k \propto 1/\sqrt{N_k} \)</td></tr>
+<tr><td>+ زیان دوتایی</td><td>افزودن زیان دوتایی وزن‌دار با فاصله</td></tr>
+</tbody></table></div>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["مرحلهٔ ۱: جهت ۱ · ۲۴ اجرا"] --> B["مقایسه با master، جهت ۲ و جهت ۳&lt;br/&gt;از حافظهٔ مشترک"]
+  B --> C{"جهت ۱ بهترین است؟"}
+  C -- "بله" --> D["مرحلهٔ ۲: ۹ مدل مقایسه + ۱۰ آزمایش حذفی"]
+  C -- "خیر" --> E["فقط جدول‌ها از اجراهای موجود"]
+  D --> F["تشخیص‌های هندسی برای k = 8"]
+</pre></div>
+<figcaption><b>شکل ۹:</b> گردش کار آزمایش‌های جهت ۱.</figcaption>
+</figure>
+</section>
+
+<section id="s3">
+<h2><span class="num">۳.</span> جهت ۲: تطبیق کم‌رتبهٔ رمزگذار متن (شاخهٔ direction2-ordinal-text-lora)</h2>
+
+<h3 id="s3-1"><span class="num">۳.۱</span> انگیزه و شکاف پژوهشی</h3>
+<p>مدل پایه پرامپت را می‌آموزد و جهت ۱ بردارهای درجه را؛ در هر دو، دانش زبانی فقط در نقطهٔ شروع حضور دارد. جهت ۲ برعکس عمل می‌کند: درجه‌ها با زبان بالینی واقعی توصیف می‌شوند و این بار خود رمزگذار متن، با تطبیق کم‌رتبه، برای درجه‌بندی DR تنظیم می‌شود. ایده از CLIP-LoRA (Zanella &amp; Ben Ayed, 2024) گرفته شده که LoRA را روی هر دو رمزگذار اعمال می‌کند، اما آن روش برای کلاس‌های بدون ترتیب طراحی شده است. نوآوری جهت ۲ این است که ترتیب روی خروجی رمزگذار متن اعمال می‌شود، پس رمزگذار تطبیق‌یافته، و نه فقط پنج بردار، ترتیب درجه‌ها را می‌آموزد. یک پیامد عملی هم دارد: توصیف تازه‌ای از یک درجه را می‌توان بدون آموزش دوباره کدگذاری کرد.</p>
+
+<h3 id="s3-2"><span class="num">۳.۲</span> تفاوت با مدل پایه</h3>
+<div class="table-wrap"><table>
+<caption><b>جدول ۱۰:</b> آنچه در جهت ۲ تغییر می‌کند</caption>
+<thead><tr><th>جزء</th><th>مدل پایه</th><th>جهت ۲</th></tr></thead>
+<tbody>
+<tr><td>ورودی شاخهٔ متن</td><td>توکن‌های قابل‌یادگیری</td><td>۲۵ توصیف بالینی ثابت (۵ برای هر درجه)</td></tr>
+<tr><td>رمزگذار متن</td><td>منجمد</td><td>منجمد + LoRA روی q، k و v در هر ۱۲ لایه</td></tr>
+<tr><td>نمونهٔ اولیهٔ درجه</td><td>خروجی یک پرامپت</td><td>میانگین نرمال‌شدهٔ ۵ توصیف</td></tr>
+<tr><td>قید ترتیبی روی نمایش</td><td>درون‌یابی توکن‌ها</td><td>نردبان، ترتیب توصیف‌ها، لنگر</td></tr>
+<tr><td>شاخهٔ تصویر، داده، SMS، زیان رتبه، معیارها، آموزش</td><td colspan="2">یکسان با بخش ۱</td></tr>
+</tbody></table></div>
+
+<h3 id="s3-3"><span class="num">۳.۳</span> معماری</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph TXT["شاخهٔ متن"]
+    D["۲۵ توصیف بالینی&lt;br/&gt;۵ توصیف برای هر درجه"] --> TE["رمزگذار متن CLIP&lt;br/&gt;منجمد + LoRA روی q، k، v"]
+    TE --> E["e_k,m: بردار نرمال هر توصیف"]
+    E --> M["میانگین در هر درجه + نرمال‌سازی&lt;br/&gt;t₀…t₄"]
+  end
+  X["تصویر"] --> V["CLIP RN50 + LoRA"] --> Z["z"]
+  Z --> S["s = 100 · z · tᵀ"]
+  M --> S
+  S --> SMS["SMS"] --> L1["CE + زیان آگاه از رتبه"]
+  M --> L2["نردبان روی t"]
+  E --> L3["ترتیب توصیف‌ها"]
+  M --> L4["لنگر به نمونه‌های صفر-نمونه‌ای"]
+</pre></div>
+<figcaption><b>شکل ۱۰:</b> معماری جهت ۲. LoRA متن و LoRA تصویر هم‌زمان آموخته می‌شوند.</figcaption>
+</figure>
+
+<h3 id="s3-4"><span class="num">۳.۴</span> توصیف‌های بالینی</h3>
+<p>برای هر درجه پنج توصیف به زبان انگلیسی نوشته شده است: جملهٔ بالینی جهت ۱، دو یا سه جمله دربارهٔ یافته‌های معمول فوندوس در آن درجه (میکروآنوریسم، خونریزی نقطه‌ای و لکه‌ای، اگزودای سخت، لکهٔ پنبه‌ای، تسبیحی شدن وریدها، ناهنجاری‌های ریزرگی درون شبکیه، نئوواسکولاریزاسیون) و یک جمله که سطح ICDR را نام می‌برد. همهٔ توصیف‌ها در محدودهٔ ۷۷ توکن CLIP جا می‌شوند. میانگین‌گیری چند توصیف (CuPL; Pratt et al., 2023) وابستگی نمونهٔ اولیه به جمله‌بندی یک جملهٔ خاص را کم می‌کند.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۱۱:</b> نمونهٔ توصیف‌های درجهٔ ۳ (شدید غیرتکثیری)</caption>
+<thead><tr><th>#</th><th>توصیف</th></tr></thead>
+<tbody>
+<tr><td>۱</td><td class="sentences">A fundus photograph showing severe non-proliferative diabetic retinopathy, with extensive intraretinal hemorrhages in four quadrants, venous beading, or intraretinal microvascular abnormalities.</td></tr>
+<tr><td>۲</td><td class="sentences">A retina with many intraretinal hemorrhages in all four quadrants and definite venous beading.</td></tr>
+<tr><td>۳</td><td class="sentences">A color fundus image with intraretinal microvascular abnormalities and widespread hemorrhages but no new vessels.</td></tr>
+<tr><td>۴</td><td class="sentences">Severe diabetic retinopathy meeting the 4-2-1 rule, without neovascularization.</td></tr>
+<tr><td>۵</td><td class="sentences">Fundus photography graded as ICDR level 3, severe non-proliferative retinopathy.</td></tr>
+</tbody></table></div>
+
+<h3 id="s3-5"><span class="num">۳.۵</span> تطبیق کم‌رتبهٔ رمزگذار متن</h3>
+<p>لایه‌های توجه رمزگذار متن CLIP، ماتریس‌های پرس‌وجو، کلید و مقدار را در یک ماتریس بسته‌بندی‌شده نگه می‌دارند و ابزارهای رایج LoRA نمی‌توانند هر کدام را جداگانه هدف بگیرند. به همین دلیل، مطابق CLIP-LoRA، هر بلوک توجه با بلوکی جایگزین می‌شود که وزن‌های منجمد را نگه می‌دارد و به‌روزرسانی کم‌رتبه را با دراپ‌اوت روی ورودی می‌افزاید:</p>
+<div class="eq">\[ q = W_q x + \tfrac{\alpha}{r}\, B_q A_q\, \mathrm{dropout}(x), \quad k = W_k x + \tfrac{\alpha}{r}\, B_k A_k\, \mathrm{dropout}(x), \quad v = W_v x + \tfrac{\alpha}{r}\, B_v A_v\, \mathrm{dropout}(x) \]<span class="tag">رابطهٔ ۱۶</span></div>
+<p>تنظیمات پیش‌فرض CLIP-LoRA به کار می‌رود: <span dir="ltr">r = 2</span>، <span dir="ltr">α = 1</span> (ضریب ۰٫۵) و دراپ‌اوت ۰٫۲۵، روی هر ۱۲ لایه. \( B \) با صفر آغاز می‌شود و آزمون نشان داده است که در این حالت خروجی رمزگذار دقیقاً با CLIP اصلی برابر است. تعداد پارامترهای LoRA متن ۱۲ × ۳ × ۲ × ۲ × ۵۱۲ = ۷۳٬۷۲۸ است.</p>
+<div class="eq">\[ e_{k,m} = \frac{g_{\theta}(s_{k,m})}{\lVert g_{\theta}(s_{k,m}) \rVert}, \qquad t_k = \frac{\frac{1}{M} \sum_{m=1}^{M} e_{k,m}}{\big\lVert \frac{1}{M} \sum_{m} e_{k,m} \big\rVert}, \qquad M = 5 \]<span class="tag">رابطهٔ ۱۷</span></div>
+<p>در ارزیابی، نمونه‌های اولیه در طول یک دور ارزیابی تغییر نمی‌کنند و یک بار محاسبه می‌شوند. نمونه‌های اولیهٔ صفر-نمونه‌ای (با <span dir="ltr">B = 0</span>) به‌عنوان لنگر \( t^{0}_k \) نگه داشته می‌شوند.</p>
+
+<h3 id="s3-6"><span class="num">۳.۶</span> قیدهای ترتیبی روی خروجی متن</h3>
+<p><b>نردبان روی نمونه‌های اولیه.</b> همان رابطهٔ ۱۲ جهت ۱، این بار روی \( t_k \) که خروجی رمزگذار است.</p>
+<p><b>ترتیب توصیف‌ها.</b> هر توصیف باید بیشترین شباهت را با درجهٔ خودش داشته باشد و شباهتش با درجه‌های دیگر با فاصله کاهش یابد. ماتریس شباهت ۲۵×۵ توصیف‌ها و نمونه‌های اولیه ساخته می‌شود و همان زوج زیان شاخهٔ تصویر روی آن اعمال می‌شود:</p>
+<div class="eq">\[ S^{d}_{(k,m), j} = 100 \cdot e_{k,m}^{\top} t_j, \qquad \mathcal{L}_{\mathrm{desc}} = \mathcal{L}_{\mathrm{CE}}(S^{d}, y^{d}) + \mathcal{L}_{\mathrm{rank}}(S^{d}, y^{d}) \]<span class="tag">رابطهٔ ۱۸</span></div>
+<p>این قید ابر توصیف‌های هر درجه را از درجه‌های دیگر جدا و در امتداد محور درجه مرتب نگه می‌دارد. اگر رمزگذار برای کم کردن زیان تصویر، توصیف‌های دو درجهٔ همسایه را روی هم بیندازد، این قید جلوی آن را می‌گیرد.</p>
+<p><b>لنگر.</b> رابطهٔ ۱۴ با \( t^{0}_k \) صفر-نمونه‌ای، تا رمزگذار در رژیم بسیار کم‌نمونه از دانش اولیه دور نشود.</p>
+<div class="eq">\[ \mathcal{L} = \mathcal{L}_{\mathrm{CE}}(\tilde{s}, y) + \mathcal{L}_{\mathrm{rank}}(\tilde{s}, y) + \mathcal{L}_{\mathrm{ladder}} + \mathcal{L}_{\mathrm{desc}} + \mathcal{L}_{\mathrm{anchor}} \]<span class="tag">رابطهٔ ۱۹</span></div>
+<p>همهٔ وزن‌ها ۱ هستند. قید مسیر و زیان دوتایی در مدل اصلی خاموش‌اند.</p>
+
+<h3 id="s3-7"><span class="num">۳.۷</span> آموزش، داده و ارزیابی</h3>
+<p>پارامترهای LoRA متن در یک گروه جداگانهٔ بهینه‌ساز با همان نرخ یادگیری \( 10^{-4} \) و کاهش وزن آموخته می‌شوند. بقیهٔ تنظیمات، داده، پروتکل ۲۴ اجرایی و معیارها همان بخش ۱ است و کل پارامترهای قابل‌آموزش ۱٬۱۸۸٬۲۷۲ + ۷۳٬۷۲۸ = ۱٬۲۶۲٬۰۰۰ است. در حالت صفر-نمونه‌ای، مدل همان طبقه‌بند صفر-نمونه‌ای CLIP با میانگین ۲۵ توصیف است. تشخیص‌های هر دوره علاوه بر موارد جهت ۱، پراکندگی توصیف‌های هر درجه گرد نمونهٔ اولیه‌اش (میانگین \( 1 - \cos \)) را هم ثبت می‌کند.</p>
+
+<h3 id="s3-8"><span class="num">۳.۸</span> مدل‌های مقایسه و آزمایش‌های حذفی</h3>
+<p>دو مقایسهٔ اختصاصی این جهت عبارت‌اند از CLIP-LoRA (LoRA روی هر دو رمزگذار، پرامپت قالبی «a photo of a {grade}.» و فقط زیان CE) و CLIP-LoRA با زیان‌های ترتیبی ما (CE، زیان آگاه از رتبه و SMS). مقایسهٔ دوم پاسخ می‌دهد که آیا قیدهای ترتیبی روی خروجی متن لازم‌اند یا زیان‌های سمت تصویر کافی است. مدل master، جهت ۱ و مدل‌های جدول ۵ هم در مقایسه حضور دارند.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۱۲:</b> آزمایش‌های حذفی جهت ۲</caption>
+<thead><tr><th>آزمایش</th><th>تغییر نسبت به مدل اصلی</th></tr></thead>
+<tbody>
+<tr><td>بدون نردبان / بدون ترتیب توصیف‌ها / بدون لنگر</td><td>وزن همان قید صفر</td></tr>
+<tr><td>بدون قیدهای متنی</td><td>هر سه قید صفر</td></tr>
+<tr><td>رمزگذار متن منجمد</td><td>بدون LoRA متن؛ نمونه‌های اولیه ثابت و برابر میانگین صفر-نمونه‌ای</td></tr>
+<tr><td>یک جملهٔ بالینی</td><td>فقط جملهٔ اول هر درجه</td></tr>
+<tr><td>جمله‌های ساده</td><td>یک جملهٔ کوتاه برای هر درجه</td></tr>
+<tr><td>رتبهٔ ۸</td><td><span dir="ltr">r = 8, α = 4</span></td></tr>
+<tr><td>LoRA روی q، k، v و o</td><td>افزودن تصویر خروجی توجه</td></tr>
+<tr><td>+ زیان دوتایی</td><td>افزودن زیان دوتایی وزن‌دار با فاصله</td></tr>
+</tbody></table></div>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["مرحلهٔ ۱: جهت ۲ · ۲۴ اجرا"] --> B["مقایسه با master، جهت ۱ و جهت ۳"]
+  B --> C{"جهت ۲ بهترین است؟"}
+  C -- "بله" --> D["مرحلهٔ ۲: CLIP-LoRA و نسخهٔ ترتیبی آن&lt;br/&gt;+ ۱۱ آزمایش حذفی"]
+  D --> E["تشخیص‌ها: نردبان، پراکندگی توصیف‌ها، فاصله از لنگر"]
+</pre></div>
+<figcaption><b>شکل ۱۱:</b> گردش کار آزمایش‌های جهت ۲.</figcaption>
+</figure>
+</section>
+
+<section id="s4">
+<h2><span class="num">۴.</span> جهت ۳: نمایش احتمالاتی درجه‌ها (شاخهٔ direction3-probabilistic-ordinal)</h2>
+
+<h3 id="s4-1"><span class="num">۴.۱</span> انگیزه و شکاف پژوهشی</h3>
+<p>مرز درجه‌های DR قطعی نیست و اختلاف نظر درجه‌بندها بیشتر میان درجه‌های ۱ و ۲ و میان ۲ و ۳ دیده می‌شود. یک نمونهٔ اولیهٔ تک‌نقطه‌ای نمی‌تواند این ابهام را نشان دهد. در جهت ۳ هر درجه یک توزیع روی کرهٔ واحد است: یک جهت میانگین که درجه را مکان‌یابی می‌کند و یک تمرکز که نشان می‌دهد درجه چقدر روشن تعریف شده است. نمایش احتمالاتی پیش‌تر در سمت تصویر بررسی شده است (POE; Li et al., 2021)، اما نمونه‌های اولیهٔ احتمالاتی سمت متن با قید ترتیبی، برای درجه‌بندی کم‌نمونه، در مرور منابع این پژوهش یافت نشد. هدف دوم این جهت کالیبراسیون است: احتمال‌هایی که با دقت واقعی هم‌خوانی دارند، برای کاربرد بالینی ارزشمندند.</p>
+
+<h3 id="s4-2"><span class="num">۴.۲</span> مدل فون‌میزس-فیشر برای هر درجه</h3>
+<p>توزیع فون‌میزس-فیشر (vMF) روی کرهٔ \( S^{D-1} \) با جهت میانگین \( \mu \) و تمرکز \( \kappa \) چنین است:</p>
+<div class="eq">\[ \mathrm{vMF}(z;\, \mu, \kappa) = C_D(\kappa)\, \exp(\kappa\, \mu^{\top} z), \qquad C_D(\kappa) = \frac{\kappa^{\nu}}{(2\pi)^{\nu+1} I_{\nu}(\kappa)}, \qquad \nu = \frac{D}{2} - 1 = 511 \]<span class="tag">رابطهٔ ۲۰</span></div>
+<p>\( I_\nu \) تابع بسل اصلاح‌شدهٔ نوع اول است. برای هر درجه، \( \mu_k \) مانند جهت ۱ یک بردار آزاد روی کره است که از میانگین ۲۵ توصیف بالینی جهت ۲ (با رمزگذار منجمد) آغاز می‌شود، و \( \kappa_k = \exp(\ell_k) \) با مقدار اولیهٔ ۱۰۰ آموخته می‌شود. این مقدار اولیه همان مقیاس دمای CLIP است.</p>
+
+<h3 id="s4-3"><span class="num">۴.۳</span> امتیازدهی: پسین آمیختهٔ vMF</h3>
+<p>تصویر با پسین آمیخته‌ای از پنج توزیع طبقه‌بندی می‌شود. ثابت \( \log C_D(\kappa^{0}) \) برای همهٔ درجه‌ها یکسان است و در softmax حذف می‌شود؛ کم کردن آن در دقت دوگانه، لاجیت‌ها را در مقیاس CLIP نگه می‌دارد (\( \log C_D \) در <span dir="ltr">κ = 100</span> حدود ۲۰۰۰+ است و جمع آن در دقت تک‌گانه حدود چهار رقم اعشار را از بین می‌برد):</p>
+<div class="eq">\[ \mathrm{logit}_k = \kappa_k\, \hat{\mu}_k^{\top} z + \log C_D(\kappa_k) - \log C_D(\kappa^{0}), \qquad p(k \mid z) = \operatorname{softmax}_k(\mathrm{logit}_k) \]<span class="tag">رابطهٔ ۲۱</span></div>
+<p>دو ویژگی این امتیازدهی مهم است. اگر همهٔ \( \kappa_k \) برابر باشند، پسین دقیقاً softmax شباهت CLIP با مقیاس \( \kappa \) است؛ پس حالت صفر-نمونه‌ای همان طبقه‌بند صفر-نمونه‌ای با میانگین توصیف‌هاست. و اگر درجه‌ای پهن‌تر شود (\( \kappa \) کمتر)، برای تصاویری که از همهٔ میانگین‌ها دورند احتمال بیشتری می‌گیرد؛ این همان رفتار هموارسازی است که SMS پس از آموزش به شباهت‌ها تحمیل می‌کند، اما اینجا جزء خود مدل است و در آزمون هم وجود دارد.</p>
+<p>در آزمایش حذفی، امتیازدهی دیگری هم بررسی می‌شود: شباهت مورد انتظار با نمونهٔ اولیه‌ای که از توزیع درجه برداشته شود. \( A_D(\kappa) = I_{\nu+1}(\kappa) / I_{\nu}(\kappa) \) طول برآیند میانگین است؛ برای نمونه \( A_D(100) \approx 0.0967 \) که با مقیاس شباهت‌های واقعی CLIP هم‌خوانی دارد:</p>
+<div class="eq">\[ \mathrm{logit}_k = 100 \cdot \frac{A_D(\kappa_k)}{A_D(\kappa^{0})}\, \hat{\mu}_k^{\top} z \]<span class="tag">رابطهٔ ۲۲</span></div>
+
+<h3 id="s4-4"><span class="num">۴.۴</span> محاسبهٔ پایدار تابع بسل</h3>
+<p>در مرتبهٔ <span dir="ltr">ν = 511</span> تابع \( I_\nu \) در دقت معمولی فرومی‌ریزد؛ برای نمونه، تابع <code>scipy.special.iv</code> در <span dir="ltr">κ = 50</span> مقدار صفر و در <span dir="ltr">κ = 100</span> مقداری از مرتبهٔ \( 10^{-294} \) برمی‌گرداند. به همین دلیل لگاریتم آن با بسط مجانبی یکنواخت (بسط دبای) و نخستین جملهٔ تصحیحی محاسبه می‌شود (DLMF §10.41):</p>
+<div class="eq">\[ \log I_{\nu}(\kappa) \approx \eta - \tfrac{1}{2}\log(2\pi) - \tfrac{1}{4}\log(\nu^2 + \kappa^2) + \log\!\Big(1 + \frac{u_1(t)}{\nu}\Big), \quad \eta = \sqrt{\nu^2 + \kappa^2} + \nu \log \frac{\kappa}{\nu + \sqrt{\nu^2 + \kappa^2}}, \quad t = \frac{\nu}{\sqrt{\nu^2 + \kappa^2}}, \quad u_1(t) = \frac{3t - 5t^3}{24} \]<span class="tag">رابطهٔ ۲۳</span></div>
+<p>این تقریب در بازهٔ <span dir="ltr">κ ∈ [1, 1000]</span> با محاسبهٔ دقت دلخواه کتابخانهٔ mpmath مقایسه شده و خطای نسبی آن حدود \( 10^{-11} \) است. تقریب نسبت به \( \kappa \) هموار و مشتق‌پذیر است و گرادیان مستقیماً از آن عبور می‌کند.</p>
+
+<h3 id="s4-5"><span class="num">۴.۵</span> معماری</h3>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph INIT["یک بار، پیش از آموزش"]
+    D["۲۵ توصیف بالینی"] --> TE["رمزگذار متن منجمد"] --> M0["μ⁰_k: میانگین توصیف‌های هر درجه"]
+  end
+  M0 --> MU["μ_k: جهت میانگین، آزاد روی کره"]
+  K0["κ⁰ = 100"] --> KA["κ_k = exp(ℓ_k): تمرکز هر درجه"]
+  X["تصویر"] --> V["CLIP RN50 + LoRA"] --> Z["z"]
+  Z --> P["پسین آمیختهٔ vMF&lt;br/&gt;رابطهٔ ۲۱"]
+  MU --> P
+  KA --> P
+  P --> L1["CE + زیان آگاه از رتبه"]
+  MU --> L2["نردبان + لنگر روی μ"]
+  KA --> L3["پیشین log-نرمال روی κ"]
+  P --> O["احتمال‌های کالیبره‌شده&lt;br/&gt;ECE · NLL · برایر"]
+</pre></div>
+<figcaption><b>شکل ۱۲:</b> معماری جهت ۳. هر درجه دو جزء آموختنی دارد: جهت میانگین و تمرکز.</figcaption>
+</figure>
+
+<h3 id="s4-6"><span class="num">۴.۶</span> توابع هزینه</h3>
+<p>زیان CE و زیان آگاه از رتبه روی لاجیت‌های vMF محاسبه می‌شوند. قیدهای نردبان (رابطهٔ ۱۲) و لنگر (رابطهٔ ۱۴) روی جهت‌های میانگین اعمال می‌شوند. برای تمرکزها یک پیشین log-نرمال وجود دارد، چون در رژیم کم‌نمونه \( \kappa \) بدون قید می‌تواند فرو بریزد یا منفجر شود:</p>
+<div class="eq">\[ \mathcal{L} = \mathcal{L}_{\mathrm{CE}} + \mathcal{L}_{\mathrm{rank}} + \mathcal{L}_{\mathrm{ladder}}(\hat{\mu}) + \mathcal{L}_{\mathrm{anchor}}(\hat{\mu}) + w_{\kappa} \sum_k \big(\log \kappa_k - \log \kappa^{0}\big)^2, \qquad w_{\kappa} = 0.1 \]<span class="tag">رابطهٔ ۲۴</span></div>
+<p>SMS در مدل اصلی خاموش است، چون نقش آن را همپوشانی توزیع‌ها بر عهده دارد؛ نسخهٔ «+ SMS» در آزمایش حذفی این فرض را می‌آزماید. قید مسیر و زیان دوتایی هم خاموش‌اند.</p>
+
+<h3 id="s4-7"><span class="num">۴.۷</span> بهینه‌سازی</h3>
+<p>جهت‌های میانگین با نرخ \( 10^{-4} \)، بدون کاهش وزن و با نرمال‌سازی پس از هر گام آموخته می‌شوند. لگاریتم تمرکزها گروه جداگانه‌ای با نرخ \( 10^{-2} \) و بدون کاهش وزن دارند. دلیل نرخ جداگانه این است که \( \log \kappa \) حدود ۴٫۶ است و با نرخ عمومی \( 10^{-4} \) در طول ۵۰ دوره تقریباً ثابت می‌ماند. پارامترهای قابل‌آموزش ۱٬۱۸۸٬۲۷۲ + ۵٬۱۲۰ + ۵ = ۱٬۱۹۳٬۳۹۷ است.</p>
+
+<h3 id="s4-8"><span class="num">۴.۸</span> داده، ارزیابی و تمرکز بر کالیبراسیون</h3>
+<p>داده، پروتکل ۲۴ اجرایی و همهٔ معیارهای بخش ۱.۷ بدون تغییر به کار می‌روند. چون ادعای اصلی این جهت کالیبراسیون است، جدول‌ها و منحنی‌های <i>k</i> افزون بر QWK، MAE و ODC، معیارهای ECE و NLL را هم برای همهٔ مدل‌ها نشان می‌دهند و امتیاز برایر هم گزارش می‌شود. تشخیص‌های هر دوره علاوه بر ماتریس فاصله، نردبان و فاصله از لنگر، مقدار \( \kappa \) هر درجه را هم ثبت می‌کند؛ مسیر تغییر \( \kappa \) نشان می‌دهد مدل کدام درجه‌ها را مبهم‌تر یافته است.</p>
+
+<h3 id="s4-9"><span class="num">۴.۹</span> مدل‌های مقایسه و آزمایش‌های حذفی</h3>
+<p>مرجع اصلی مقایسه CLIP-DR هم‌تراز است، چون SMS همان جزئی است که جهت ۳ جایگزینش می‌کند. مدل master، جهت‌های ۱ و ۲، مدل‌های جدول ۵ و CLIP-LoRA با زیان‌های ترتیبی هم در مقایسه حضور دارند.</p>
+<div class="table-wrap"><table>
+<caption><b>جدول ۱۳:</b> آزمایش‌های حذفی جهت ۳</caption>
+<thead><tr><th>آزمایش</th><th>تغییر</th><th>پرسشی که پاسخ می‌دهد</th></tr></thead>
+<tbody>
+<tr><td>\( \kappa \) مشترک</td><td>یک تمرکز برای همهٔ درجه‌ها (یک دمای آموختنی)</td><td>آیا ابهام جداگانهٔ هر درجه لازم است؟</td></tr>
+<tr><td>\( \kappa \) ثابت</td><td>تمرکز آموخته نمی‌شود</td><td>مدل قطعی با همان مقداردهی</td></tr>
+<tr><td>شباهت مورد انتظار</td><td>رابطهٔ ۲۲ به‌جای ۲۱</td><td>کدام امتیازدهی بهتر است؟</td></tr>
+<tr><td>+ SMS</td><td>افزودن SMS</td><td>آیا همپوشانی توزیع‌ها جای SMS را می‌گیرد؟</td></tr>
+<tr><td>بدون نردبان / بدون لنگر / بدون پیشین \( \kappa \)</td><td>وزن همان جزء صفر</td><td>سهم هر قید</td></tr>
+<tr><td>مقداردهی با یک جملهٔ بالینی</td><td>جملهٔ جهت ۱ به‌جای میانگین ۵ توصیف</td><td>اثر میانگین‌گیری توصیف‌ها</td></tr>
+<tr><td>\( \kappa^{0} = 50 \)</td><td>توزیع‌های پهن‌تر در آغاز</td><td>حساسیت به مقدار اولیه</td></tr>
+<tr><td>+ زیان دوتایی</td><td>افزودن زیان دوتایی وزن‌دار با فاصله</td><td>سهم این زیان در جهت ۳</td></tr>
+</tbody></table></div>
+<figure>
+<div class="diagram"><pre class="mermaid">
+flowchart LR
+  A["مرحلهٔ ۱: جهت ۳ · ۲۴ اجرا"] --> B["مقایسهٔ مدل‌های اصلی&lt;br/&gt;QWK · ODC · ECE · NLL"]
+  B --> C{"جهت ۳ بهترین است؟"}
+  C -- "بله" --> D["مرحلهٔ ۲: مقایسه با CLIP-DR و بقیه&lt;br/&gt;+ ۱۱ آزمایش حذفی"]
+  D --> E["جدول‌های کالیبراسیون و مسیر κ هر درجه"]
+</pre></div>
+<figcaption><b>شکل ۱۳:</b> گردش کار آزمایش‌های جهت ۳.</figcaption>
+</figure>
+</section>
+
+<section id="refs">
+<h2>منابع و واژه‌نامه</h2>
+<h3>معیار موفقیت در هر چهار بخش</h3>
+<p>مدلی برتر شمرده می‌شود که در میانگین سه بذر، QWK بالاتری در رژیم‌های کم‌نمونه داشته باشد و هم‌زمان در ماتریس درهم‌ریختگی‌اش خطاها با دور شدن از قطر کاهش یابند (ODC نزدیک به ۱ و جرم خطای نزولی بر حسب فاصله). برای جهت ۳، کاهش ECE و NLL بدون افت QWK شرط لازم ادعای کالیبراسیون است.</p>
+
+<h3>منابع</h3>
+<ol class="refs" dir="ltr">
+<li>Radford, A. et al. Learning Transferable Visual Models From Natural Language Supervision (CLIP). ICML 2021.</li>
+<li>Li, W. et al. OrdinalCLIP: Learning Rank Prompts for Language-Guided Ordinal Regression. NeurIPS 2022.</li>
+<li>Yu, Q. et al. CLIP-DR: Textual Knowledge-Guided Diabetic Retinopathy Grading with Ranking-aware Prompting. MICCAI 2024.</li>
+<li>Wang, R. et al. Learning-to-Rank Meets Language: Boosting Language-Driven Ordering Alignment for Ordinal Classification (L2RCLIP). NeurIPS 2023.</li>
+<li>Silva-Rodríguez, J., Hajimiri, S., Ben Ayed, I., Dolz, J. A Closer Look at the Few-Shot Adaptation of Large Vision-Language Models (CLAP). CVPR 2024.</li>
+<li>Zanella, M., Ben Ayed, I. Low-Rank Few-Shot Adaptation of Vision-Language Models (CLIP-LoRA). CVPR Workshops 2024.</li>
+<li>Hu, E. J. et al. LoRA: Low-Rank Adaptation of Large Language Models. ICLR 2022.</li>
+<li>Yang, Y. et al. Delving into Deep Imbalanced Regression (FDS). ICML 2021.</li>
+<li>Pratt, S. et al. What does a platypus look like? Generating customized prompts for zero-shot image classification (CuPL). ICCV 2023.</li>
+<li>Li, W. et al. Learning Probabilistic Ordinal Embeddings for Uncertainty-Aware Regression (POE). CVPR 2021.</li>
+<li>Wilkinson, C. P. et al. Proposed international clinical diabetic retinopathy and diabetic macular edema disease severity scales. Ophthalmology 2003.</li>
+<li>NIST Digital Library of Mathematical Functions, §10.41: Asymptotic expansions for large order.</li>
+<li>Liu, R. et al. DeepDRiD: Diabetic Retinopathy—Grading and Image Quality Estimation Challenge. Patterns 2022.</li>
+</ol>
+
+<h3>واژه‌نامه</h3>
+<div class="table-wrap"><table>
+<caption><b>جدول ۱۴:</b> معادل‌های به‌کاررفته در سند</caption>
+<thead><tr><th>اصطلاح فارسی</th><th class="ltr">English</th></tr></thead>
+<tbody>
+<tr><td>رژیم کم‌نمونه</td><td class="ltr">few-shot regime</td></tr>
+<tr><td>مجموعهٔ پشتیبان / پرس‌وجو</td><td class="ltr">support / query set</td></tr>
+<tr><td>نمونهٔ اولیه</td><td class="ltr">prototype</td></tr>
+<tr><td>توکن بافت / توکن رتبه</td><td class="ltr">context token / rank token</td></tr>
+<tr><td>تطبیق کم‌رتبه</td><td class="ltr">low-rank adaptation (LoRA)</td></tr>
+<tr><td>زیان آگاه از رتبه</td><td class="ltr">ranking-aware loss</td></tr>
+<tr><td>هموارسازی ماتریس شباهت</td><td class="ltr">similarity matrix smoothing (SMS)</td></tr>
+<tr><td>زیان دوتایی وزن‌دار با فاصله</td><td class="ltr">distance-weighted pairwise loss</td></tr>
+<tr><td>کاپای وزنی درجه‌دوم</td><td class="ltr">quadratic weighted kappa (QWK)</td></tr>
+<tr><td>سازگاری افت ترتیبی</td><td class="ltr">ordinal decay consistency (ODC)</td></tr>
+<tr><td>خطای کالیبراسیون مورد انتظار</td><td class="ltr">expected calibration error (ECE)</td></tr>
+<tr><td>لگاریتم درست‌نمایی منفی</td><td class="ltr">negative log-likelihood (NLL)</td></tr>
+<tr><td>توزیع فون‌میزس-فیشر / تمرکز</td><td class="ltr">von Mises-Fisher distribution / concentration</td></tr>
+<tr><td>بسط مجانبی یکنواخت</td><td class="ltr">uniform asymptotic (Debye) expansion</td></tr>
+<tr><td>آزمایش حذفی</td><td class="ltr">ablation study</td></tr>
+</tbody></table></div>
+</section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    var dark = document.documentElement.dataset.theme === 'dark' ||
+      (document.documentElement.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+    mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'neutral', fontFamily: 'Vazirmatn, Tahoma, sans-serif', flowchart: { htmlLabels: true } });
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  // MathML output: no KaTeX stylesheet or fonts needed (the artifact CSP allows only scripts from the CDN)
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.renderMathInElement) {
+      renderMathInElement(document.body, {
+        delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '\\(', right: '\\)', display: false }],
+        output: 'mathml',
+        throwOnError: false
+      });
+    }
+  });
+</script>

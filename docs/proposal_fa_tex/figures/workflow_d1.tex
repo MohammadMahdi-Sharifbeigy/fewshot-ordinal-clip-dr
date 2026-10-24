@@ -1,0 +1,68 @@
+% Full workflow of Direction 1: free grade vectors in the joint space + ordinal geometric constraints.
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\legend
+
+% ---------------- (a) model ----------------
+\panel{6.0}{2.6}{17.8}{14.6}{(a)}{Ordinal geometry in the joint space (Direction 1)}
+\imagebranch
+\simmatrix{$S=100\,z\,\hat T^{\top}$,\ \ $B\times5$}
+
+% initialisation strip (runs once)
+\node[sbox,text width=2.5cm] (sent) at (7.65,9.95) {\textbf{5 ICDR clinical}\\ \textbf{sentences}, one per grade};
+\node[frz,text width=2.4cm] (tenc) at (10.55,9.95) {\textbf{CLIP text encoder}\\ frozen, used once};
+\node[blk,text width=2.4cm] (anc) at (13.35,9.95) {anchors $\hat t^{\,0}_0,\dots,\hat t^{\,0}_4$\\ (kept fixed)};
+\draw[arr] (sent)--(tenc); \draw[arr] (tenc)--(anc);
+\begin{scope}[on background layer]\draw[panelln,dashed,rounded corners=3pt] (6.3,9.15) rectangle (14.75,10.85);\end{scope}
+\node[cite,anchor=west] at (6.35,10.65) {once, before training};
+% trainable grade vectors
+\node[trn,text width=7.6cm] (tv) at (10.3,7.75) {\textbf{5 free grade vectors} $t_k\in\mathbb{R}^{1024}$ on the unit sphere\\ initialised $t_k\leftarrow\hat t^{\,0}_k$, renormalised after every optimiser step\\ 5{,}120 parameters, AdamW lr $10^{-4}$, no weight decay};
+\draw[arr] (anc.south) -- ++(0,-0.35) -| node[pos=0.25,above,font=\scriptsize]{init} (tv.north);
+\node[note,anchor=west] at (6.35,6.45) {ablations: plain sentences, or 5 random orthonormal vectors (no language prior)};
+\node[note,anchor=west] at (6.35,6.05) {the text encoder is not called in training or test};
+% sphere sketch
+\begin{scope}[shift={(16.05,6.95)}]
+  \draw[ink!30] (1.55,0) arc (0:180:1.55) -- cycle;
+  \foreach \a/\k/\c in {150/0/g0,120/1/g1,90/2/g2,60/3/g3,30/4/g4} {
+    \draw[ink!35] (0,0) -- (\a:1.55);
+    \draw[densely dotted,statln] (\a+6:1.55) circle (0.09);
+    \fill[\c] (\a:1.55) circle (0.09);
+    \node[font=\tiny] at (\a:1.83) {$\hat t_{\k}$};}
+  \draw[trnln,line width=1pt] (150:1.55) arc (150:30:1.55);
+  \node[note] at (0,-0.25) {unit sphere};
+\end{scope}
+\draw[arr] (tv.east) -- (14.45,7.75);
+\draw[arr] (16.05,8.95) -- (16.05,11.05);
+\gradeaxis{ladder and path keep the five vectors ordered on one smooth curve}
+
+% ---------------- (b) objective ----------------
+\panel{18.1}{2.6}{25.8}{14.6}{(b)}{Objective, constraints, output}
+\node[blk,minimum width=7.3cm,minimum height=4.75cm] (obj) at (21.95,11.55) {};
+\node[btitle] at (21.95,13.58) {Training objective (support set), all weights 1};
+\node[fill=ink!5,rounded corners=2pt,minimum width=6.9cm,minimum height=7mm,font=\footnotesize] at (21.95,13.03)
+  {$\mathcal{L}=\mathcal{L}_{\mathrm{CE}}+\mathcal{L}_{\mathrm{rank}}+\mathcal{L}_{\mathrm{ladder}}+\mathcal{L}_{\mathrm{path}}+\mathcal{L}_{\mathrm{anchor}}$};
+\node[anchor=north west,font=\scriptsize,inner sep=0pt] at (18.5,12.55) {\renewcommand{\arraystretch}{1.25}\begin{tabular}{@{}L{1.45cm}L{5.5cm}@{}}
+  $\mathcal{L}_{\mathrm{CE}},\mathcal{L}_{\mathrm{rank}}$ & on $\tilde S$ (SMS-calibrated), as in master\\
+  \textbf{ladder} & 10 hinge constraints, $m=0.05$\\
+  & $d(i,i{+}\Delta)+(\Delta'{-}\Delta)\,m\le d(i,i{+}\Delta')$\\
+  & with $d(i,j)=1-\hat t_i^{\top}\hat t_j$\\
+  \textbf{path} & smooth + aligned steps, $v_k=\hat t_{k+1}-\hat t_k$\\
+  & $\sum_k\lVert v_k-v_{k-1}\rVert^2$\\
+  & $\;+\sum_k\big(1-\cos(v_k,v_{k-1})\big)$\\
+  \textbf{anchor} & $\sum_k 2\lambda_k\big(1-\hat t_k^{\top}\hat t^{\,0}_k\big)$, \ $\lambda_k=1$\\
+\end{tabular}};
+\node[stat,minimum width=7.3cm,minimum height=1.6cm] (sms) at (21.95,8.2) {};
+\node[btitle] at (21.95,8.7) {SMS (training only), as in master};
+\node[font=\scriptsize] at (21.95,8.05) {per-grade similarity statistics, momentum 0.9, Gaussian kernel};
+\node[font=\scriptsize] at (21.95,7.65) {over grades; $\tilde S$ feeds $\mathcal{L}_{\mathrm{CE}}$ and $\mathcal{L}_{\mathrm{rank}}$};
+\node[blk,minimum width=7.3cm,minimum height=1.6cm] (diag) at (21.95,6.5) {};
+\node[btitle] at (21.95,7.0) {Geometric diagnostics (every epoch)};
+\node[font=\scriptsize,align=center] at (21.95,6.38) {$5\times5$ cosine distance matrix $\cdot$ step angles along the path\\ drift from anchors $\cdot$ fraction of satisfied ladder constraints};
+\draw[arr] (S.east) -- ++(0.35,0) |- (obj.west);
+\draw[arr] (sms.north) -- node[right,font=\scriptsize]{$\tilde S$} (obj.south);
+\evalbox{$\hat y=\arg\max_j\ \mathrm{softmax}(S)_j$}
+
+\end{tikzpicture}
+\end{document}

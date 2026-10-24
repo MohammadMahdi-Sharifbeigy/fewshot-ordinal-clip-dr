@@ -1,0 +1,7 @@
+\documentclass[border=4pt]{standalone}
+\input{wfstyle}
+\begin{document}
+\begin{tikzpicture}
+\protocolfig{AdamW, lr $10^{-4}$, wd $10^{-4}$\\ text LoRA in own group\\ 5-epoch warm-up, cosine\\ 50 epochs, bf16}{1{,}262{,}000 trainable}{\bchip{master}\bchip{Direction 1}\bchip{CLIP-LoRA (CE)}\bchip{CLIP-LoRA + ordinal losses}}{\achip{w/o ladder}\achip{w/o desc}\achip{w/o anchor}\achip{w/o text terms}\achip{frozen text encoder}\achip{1 clinical sentence}\achip{plain sentences}\achip{$r{=}8$, $\alpha{=}4$}\achip{LoRA on $q,k,v,o$}\achip{+ pairwise}}
+\end{tikzpicture}
+\end{document}
